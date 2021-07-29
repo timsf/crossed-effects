@@ -9,9 +9,9 @@
 
 ## Instructions for Ubuntu/OSX
 
-0. Install the generic depencies: `Python 3.8`, `pip`, `pipenv`, `git`
+0. Install the generic dependencies: `Python 3.8`, `pip`, `pipenv`, `git`
 
-1. Define your project root ([project]) and navigate there:
+1. Define your project root (`[project]`) and navigate there:
 
         mkdir [project]
         cd [project]
