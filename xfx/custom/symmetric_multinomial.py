@@ -2,9 +2,10 @@ from typing import Iterator, List, Tuple
 
 import numpy as np
 
-from xfx.mvglm.gibbs import update_factor_precision, eval_kernel
-from xfx.mvglm.metropolis import LatentGaussSampler
-from xfx.misc.linalg import sherman_morrison_update
+import xfx.generic.mv_conjugate
+from xfx.mvglm.gibbs import eval_kernel
+from xfx.generic.mv_1o_met import LatentGaussSampler
+#from xfx.misc.linalg import sherman_morrison_update
 
 from scipy.special import logsumexp
 
@@ -32,7 +33,7 @@ def sample_posterior(y: np.ndarray, j: np.ndarray, i: np.ndarray,
     while True:
         alp0, alp = update_coefs(y, n, i, i_ord, alp0, alp, tau0, tau, samplers, ome)
         if not np.all(np.isinf(prior_n_tau)):
-            tau = update_factor_precision(j, alp, prior_n_tau, prior_est_tau, ome)
+            tau = xfx.generic.mv_conjugate.update_factor_precision(j, alp, prior_n_tau, prior_est_tau, ome)
         yield [alp0[np.newaxis]] + alp, tau
 
 

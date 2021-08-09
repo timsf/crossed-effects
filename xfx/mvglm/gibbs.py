@@ -2,10 +2,8 @@ from typing import Callable, Iterator, List, Optional, Tuple
 
 import numpy as np
 
-from xfx.mvglm.metropolis import LatentGaussSampler
-from xfx.misc.linalg import sherman_morrison_update
-
-from scipy.stats import wishart
+import xfx.generic.mv_conjugate
+from xfx.generic.mv_1o_met import LatentGaussSampler
 
 
 PartFunc = Callable[[np.ndarray], Tuple[np.ndarray, np.ndarray]]
@@ -38,14 +36,14 @@ def sample_posterior(y: np.ndarray, n: np.ndarray, j: np.ndarray, i: np.ndarray,
     while True:
         alp0, alp = update_coefs(y, n, i, i_ord, alp0, alp, tau0, tau, eval_part, samplers, ome)
         if not np.all(np.isinf(prior_n_tau)):
-            tau = update_factor_precision(j, alp, prior_n_tau, prior_est_tau, ome)
+            tau = xfx.generic.mv_conjugate.update_factor_precision(j, alp, prior_n_tau, prior_est_tau, ome)
         yield [alp0[np.newaxis]] + alp, tau
 
 
 def update_coefs(y: np.ndarray, n: np.ndarray, i: np.ndarray, i_ord: np.ndarray,
-                 alp0: np.ndarray, alp: [np.ndarray], tau0: np.ndarray, tau: [np.ndarray],
-                 eval_part: PartFunc, samplers: [LatentGaussSampler], ome: np.random.Generator
-                 ) -> (float, [np.ndarray]):
+                 alp0: np.ndarray, alp: List[np.ndarray], tau0: np.ndarray, tau: List[np.ndarray],
+                 eval_part: PartFunc, samplers: List[LatentGaussSampler], ome: np.random.Generator
+                 ) -> Tuple[float, List[np.ndarray]]:
 
     new_alp0, new_alp = alp0, alp.copy()
     for k_, (i_ord_, tau_, sampler_) in enumerate(zip(i_ord.T, tau, samplers)):
@@ -54,10 +52,10 @@ def update_coefs(y: np.ndarray, n: np.ndarray, i: np.ndarray, i_ord: np.ndarray,
     return new_alp0, new_alp
 
 
-def update_single_coef(y: np.ndarray, n: np.ndarray, i: np.ndarray, block: (int, np.ndarray),
-                       alp0: np.ndarray, alp: [np.ndarray], tau0: np.ndarray, tau_: np.ndarray,
+def update_single_coef(y: np.ndarray, n: np.ndarray, i: np.ndarray, block: Tuple[int, np.ndarray],
+                       alp0: np.ndarray, alp: List[np.ndarray], tau0: np.ndarray, tau_: np.ndarray,
                        eval_part: PartFunc, sampler: LatentGaussSampler, ome: np.random.Generator
-                       ) -> (float, np.ndarray):
+                       ) -> Tuple[float, np.ndarray]:
 
     def eval_log_f(b: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
         log_p, dk_log_p = eval_kernel(y, n, i, alp0, alp[:k_] + [b - alp0] + alp[(k_ + 1):], eval_part, block)
@@ -72,20 +70,8 @@ def update_single_coef(y: np.ndarray, n: np.ndarray, i: np.ndarray, block: (int,
     return new_alp0, new_bet_ - new_alp0
 
 
-def update_factor_precision(j: np.ndarray, alp: [np.ndarray], prior_n: np.ndarray, prior_est: [np.ndarray],
-                            ome: np.random.Generator) -> [np.ndarray]:
-
-    post_n = prior_n + j
-    post_est = [prior_est_ if np.isinf(prior_n_)
-                    else post_n_ * sherman_morrison_update(prior_est_ / prior_n_, alp_, alp_)
-                for prior_n_, prior_est_, post_n_, alp_ in zip(prior_n, prior_est, post_n, alp)]
-    return [post_est_ if np.isinf(post_n_)
-                else wishart.rvs(post_n_, post_est_ / post_n_, random_state=ome) 
-            for post_n_, post_est_ in zip(post_n, post_est)]
-
-
-def eval_kernel(y: np.ndarray, n: np.ndarray, i: np.ndarray, alp0: np.ndarray, alp: [np.ndarray],
-                eval_part: PartFunc, block: (int, np.ndarray) = None) -> (np.ndarray, np.ndarray):
+def eval_kernel(y: np.ndarray, n: np.ndarray, i: np.ndarray, alp0: np.ndarray, alp: List[np.ndarray],
+                eval_part: PartFunc, block: Tuple[int, np.ndarray] = None) -> Tuple[np.ndarray, np.ndarray]:
 
     eta = alp0 + sum([alp_[i_] for alp_, i_ in zip(alp, i.T)])
     part, d_part = eval_part(eta)

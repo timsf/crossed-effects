@@ -5,6 +5,7 @@ import numpy as np
 from scipy.stats import invgauss
 
 import xfx.lm.gibbs
+import xfx.generic.uv_conjugate
 
 
 def sample_posterior(y: np.ndarray, n: np.ndarray, j: np.ndarray, i: np.ndarray,
@@ -31,7 +32,7 @@ def sample_posterior(y: np.ndarray, n: np.ndarray, j: np.ndarray, i: np.ndarray,
         alp = xfx.lm.gibbs.update_coefs(x1, x2, None, alp, tau, 1, ome)
         alp0 = xfx.lm.gibbs.update_intercept(x0, x1, alp, 1, ome)
         if not np.all(np.isinf(prior_n_tau)):
-            tau = xfx.lm.gibbs.update_factor_precision(j, alp, prior_n_tau, prior_est_tau, ome)
+            tau = xfx.generic.uv_conjugate.update_factor_precision(j, alp, prior_n_tau, prior_est_tau, ome)
         nu = update_latent(n, i, alp0, alp, ome)
         yield [np.array([alp0])] + alp, tau, nu
 

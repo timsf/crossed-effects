@@ -3,8 +3,8 @@ from typing import Callable, Iterator, List, Optional, Tuple
 import numpy as np
 from scipy.optimize import root_scalar
 
-import xfx.glm.metropolis
-import xfx.lm.gibbs
+import xfx.generic.uv_conjugate
+from xfx.generic.uv_2o_met import LatentGaussSampler
 
 
 PartFunc = Callable[[np.ndarray], Tuple[np.ndarray, np.ndarray, np.ndarray]]
@@ -33,12 +33,12 @@ def sample_disp_posterior(y1: np.ndarray, y2: Optional[np.ndarray], n: np.ndarra
         alp0, alp, tau, phi = init
                           
     i_ord = np.argsort(i, 0)
-    samplers = [xfx.glm.metropolis.LatentGaussSampler(n) for n in [np.bincount(i_) for i_ in i.T]]
+    samplers = [LatentGaussSampler(n) for n in [np.bincount(i_) for i_ in i.T]]
 
     while True:
         alp0, alp = update_coefs(y1, n, i, i_ord, alp0, alp, tau, phi, collapse, eval_part, samplers, ome)
         if not np.all(np.isinf(prior_n_tau)):
-            tau = xfx.lm.gibbs.update_factor_precision(j, alp, prior_n_tau, prior_est_tau, ome)
+            tau = xfx.generic.uv_conjugate.update_factor_precision(j, alp, prior_n_tau, prior_est_tau, ome)
         if not np.isinf(prior_n_phi):
             phi = update_dispersion(y1, y2, n, i, alp0, alp, phi, eval_part, eval_base, prior_n_phi, prior_est_phi, ome)
         yield [np.array([alp0])] + alp, tau, phi
@@ -57,7 +57,7 @@ def sample_posterior(y: np.ndarray, n: np.ndarray, j: np.ndarray, i: np.ndarray,
 
 def update_coefs(y1: np.ndarray, n: np.ndarray, i: np.ndarray, i_ord: np.ndarray,
                  alp0: float, alp: List[np.ndarray], tau: np.ndarray, phi: float, collapse: bool,
-                 eval_part: PartFunc, samplers: List[xfx.glm.metropolis.LatentGaussSampler], ome: np.random.Generator
+                 eval_part: PartFunc, samplers: List[LatentGaussSampler], ome: np.random.Generator
                  ) -> Tuple[float, List[np.ndarray]]:
 
     new_alp0, new_alp = alp0, alp.copy()
@@ -69,7 +69,7 @@ def update_coefs(y1: np.ndarray, n: np.ndarray, i: np.ndarray, i_ord: np.ndarray
 
 def update_single_coef(y1: np.ndarray, n: np.ndarray, i: np.ndarray, block: Tuple[int, np.ndarray],
                        alp0: float, alp: List[np.ndarray], tau_: float, phi: float, collapse: bool, eval_part: PartFunc,
-                       sampler: xfx.glm.metropolis.LatentGaussSampler, ome: np.random.Generator
+                       sampler: LatentGaussSampler, ome: np.random.Generator
                        ) -> Tuple[float, np.ndarray]:
 
     def eval_log_p(b: np.ndarray) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
@@ -95,7 +95,7 @@ def update_intercept(y1: np.ndarray, n: np.ndarray, i: np.ndarray,
         log_p, dk_log_p, d2k_log_p = eval_kernel(y1, n, i, a[0], alp, eval_part, None)
         return log_p / phi, dk_log_p / phi, d2k_log_p / phi
 
-    sampler = xfx.glm.metropolis.LatentGaussSampler(np.ones(1))
+    sampler = LatentGaussSampler(np.ones(1))
     return sampler.sample(np.array([alp0]), np.zeros(1), np.array([tau0]), eval_log_p, ome)[0]
 
 

@@ -5,7 +5,7 @@ import numpy as np
 
 def sample_marginal(x: np.ndarray, mu: np.ndarray, u: np.ndarray, l_tau: np.ndarray, delt: np.ndarray,
                     f_log_f: Callable[[np.ndarray], Tuple[np.ndarray, np.ndarray]],
-                    ome: np.random.Generator) -> (np.ndarray, np.ndarray):
+                    ome: np.random.Generator) -> Tuple[np.ndarray, np.ndarray]:
 
     l_b = l_tau[np.newaxis] + 1 / delt[:, np.newaxis]
     l_a = 1 / l_b

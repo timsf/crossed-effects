@@ -1,10 +1,11 @@
-
 import itertools as it
 from typing import Dict, Iterator, List, NamedTuple, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
 from scipy.sparse import csr_matrix
+
+import xfx.generic.uv_conjugate
 
 
 class LmSuffStat(NamedTuple):
@@ -39,7 +40,7 @@ def sample_posterior(y1: np.ndarray, y2: np.ndarray, n: np.ndarray, j: np.ndarra
         alp = update_coefs(x1, x2, None if collapse else alp0, alp, tau, lam, ome)
         alp0 = update_intercept(x0, x1, alp, lam, ome)
         if not np.all(np.isinf(prior_n_tau)):
-            tau = update_factor_precision(j, alp, prior_n_tau, prior_est_tau, ome)
+            tau = xfx.generic.uv_conjugate.update_factor_precision(j, alp, prior_n_tau, prior_est_tau, ome)
         if not np.isinf(prior_n_lam):
             lam = update_resid_precision(x0, x1, x2, alp0, alp, prior_n_lam, prior_est_lam, ome)
         yield [np.array([alp0])] + alp, tau, lam
@@ -88,16 +89,6 @@ def update_coefs_single(x1_: LmSuffStat, x2_sub: List[LmSuffStat], alp0: float, 
     post_mean = lam / (x1_.len * lam + tau_) * (x1_.sum - x1_.len * alp0 - fitted_sum)
     post_sd = 1 / np.sqrt(x1_.len * lam + tau_)
     return ome.normal(post_mean, post_sd)
-
-
-def update_factor_precision(j: np.ndarray, alp: List[np.ndarray], prior_n: np.ndarray, prior_est: np.ndarray, 
-                            ome: np.random.Generator) -> np.ndarray:
-
-    post_n = prior_n + j
-    post_est = np.where(
-        np.isinf(prior_n), prior_est,
-        post_n / (prior_n / prior_est + np.array([np.sum(np.square(alp_)) for alp_ in alp])))
-    return np.where(np.isinf(post_n), post_est, ome.gamma(post_n / 2, (2 * post_est) / post_n))
 
 
 def update_resid_precision(x0: LmSuffStat, x1: List[LmSuffStat], x2: Dict[Tuple[int, int], LmSuffStat],
