@@ -82,7 +82,7 @@ def test_binomial(j=np.array([2, 3]), n_inflator=int(1e3), n_samples=int(1e3), s
     data, params = sample_balanced_fixture(j, n_inflator=n_inflator, ome=ome)
     y, _, n, i = data
     y1 = ome.binomial(n, expit(y / n))
-    sampler = xfx.glm.sample_posterior(y1, n, j, i, ome=ome)
+    sampler = xfx.glm.binomial.sample_posterior(y1, n, j, i, ome=ome)
     samples = [x_ for _, x_ in zip(range(n_samples), sampler)]
 
 

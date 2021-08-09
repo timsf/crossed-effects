@@ -73,7 +73,7 @@ def test_benchmark_vs_gibbs(j=np.array([2, 3]), n_inflator=int(1e6), n_samples=i
     y1, y2, n, i = data
 
     sampler = gibbs.sample_posterior(y1, y2, n, j, i, np.repeat(np.inf, len(j)), params[2], np.inf, params[3], ome=ome)
-    samples = np.vstack([np.hstack(sample[1]) for _, sample in zip(range(n_samples), sampler)])
+    samples = np.vstack([np.hstack(sample[0][1:]) for _, sample in zip(range(n_samples), sampler)])
     post_mean, post_cov = iid.update_coefs(y1, n, j, i, params[2], params[3])
     post_prec = np.linalg.inv(post_cov)
     mahdist = np.array([(s - post_mean) @ post_prec @ (s - post_mean) for s in samples])[1:]
