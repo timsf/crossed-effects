@@ -9,27 +9,37 @@
 
 ## Instructions for Ubuntu/OSX
 
-0. Install the generic dependencies: `Python 3.8`, `pip`, `pipenv`, `git`
+0. Install the generic dependencies: `Python 3.8`, `pip`, `pipenv`, `git`:
 
 1. Define your project root (`[project]`) and navigate there:
 
-        mkdir [project]
-        cd [project]
+    ```shell
+    mkdir [project]
+    cd [project]
+    ```
 
-2. Clone the repository
+2. Clone the repository:
 
-        git clone https://github.com/timsf/crossed-effects.git
+    ```shell
+    git clone https://github.com/timsf/crossed-effects.git
+    ```
 
-3. Create a virtual environment and install dependencies
+3. Create a virtual environment and install dependencies:
 
-        pipenv install
+    ```shell
+    pipenv install
+    ```
 
-4. Start a shell within the virtual environment
+4. Start a shell within the virtual environment:
 
-        pipenv shell
+    ```shell
+    pipenv shell
+    ```
 
-5. Start the `Jupyter` server
+5. Start the `Jupyter` server:
 
-        jupyter notebook
+    ```shell
+    jupyter notebook
+    ```
 
-6. Access the `Jupyter` server in your browser and navigate to the notebook of interest
+6. Access the `Jupyter` server in your browser and navigate to the notebook of interest.
