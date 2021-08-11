@@ -30,7 +30,8 @@ def accept_reject(x: np.ndarray, y: np.ndarray, x_log_p: np.ndarray, y_log_p: np
     log_lik_ratio = y_log_p - x_log_p
     log_prior_odds = eval_norm(y, mu, tau) - eval_norm(x, mu, tau)
     log_prop_odds = eval_norm(y, mean_x, prec_x) - eval_norm(x, mean_y, prec_y)
-    acc_prob = np.exp([min(0, lp) for lp in log_lik_ratio + log_prior_odds - log_prop_odds])
+    log_acc_odds = log_lik_ratio + log_prior_odds - log_prop_odds
+    acc_prob = np.exp([min(0, lp) for lp in np.where(np.isnan(log_acc_odds), -np.inf, log_acc_odds)])
     return np.where(ome.uniform(size=len(x)) < acc_prob, y, x), acc_prob
 
 
