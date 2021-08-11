@@ -23,7 +23,7 @@ def sample_randfx_fixture(l, j, df_tau, scale_tau, ome):
 
 def sample_data_fixture(i, n_inflator, alp0, alp, ome):
 
-    return alp0 + sum([alp_[j_] for alp_, j_ in zip(alp, i.T)]) * n_inflator, np.repeat(n_inflator, i.shape[0])
+    return (alp0 + sum([alp_[j_] for alp_, j_ in zip(alp, i.T)])) * n_inflator, np.repeat(n_inflator, i.shape[0])
 
 
 def sample_balanced_design(j, ome):

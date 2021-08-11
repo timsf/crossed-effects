@@ -10,7 +10,7 @@ import xfx.generic.uv_conjugate
 
 def sample_posterior(y: np.ndarray, n: np.ndarray, j: np.ndarray, i: np.ndarray,
                      prior_n_tau: np.ndarray = None, prior_est_tau: np.ndarray = None,
-                     init: Tuple[float, List[np.ndarray], np.ndarray, np.ndarray] = None,
+                     init: Tuple[List[np.ndarray], np.ndarray, np.ndarray] = None,
                      ome: np.random.Generator = np.random.default_rng()
                      ) -> Iterator[Tuple[List[np.ndarray], np.ndarray, float]]:
 

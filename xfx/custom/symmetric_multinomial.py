@@ -12,6 +12,7 @@ from scipy.special import logsumexp
 
 def sample_posterior(y: np.ndarray, j: np.ndarray, i: np.ndarray, 
                      tau0: np.ndarray = None, prior_n_tau: np.ndarray = None, prior_est_tau: List[np.ndarray] = None, 
+                     init: Tuple[List[np.ndarray], List[np.ndarray]] = None,
                      ome: np.random.Generator = np.random.default_rng()
                      ) -> Iterator[Tuple[List[np.ndarray], List[np.ndarray]]]:
 
@@ -22,13 +23,16 @@ def sample_posterior(y: np.ndarray, j: np.ndarray, i: np.ndarray,
     if prior_est_tau is None:
         prior_est_tau = len(j) * [np.identity(y.shape[1])]
 
+    if init is None:
+        alp0 = np.zeros(y.shape[1])
+        alp = [np.zeros((j_, y.shape[1])) for j_ in j]
+        tau = prior_est_tau
+    else:
+        alp0, alp, tau = init
+
     n = np.sum(y, 1)
     i_ord = np.argsort(i, 0)
     samplers = [LatentGaussSampler(n) for n in [np.bincount(i_) for i_ in i.T]]
-
-    alp0 = np.zeros(y.shape[1])
-    alp = [np.zeros((j_, y.shape[1])) for j_ in j]
-    tau = prior_est_tau
 
     while True:
         alp0, alp = update_coefs(y, n, i, i_ord, alp0, alp, tau0, tau, samplers, ome)
@@ -42,22 +46,21 @@ def update_coefs(y: np.ndarray, n: np.ndarray, i: np.ndarray, i_ord: np.ndarray,
                  samplers: List[LatentGaussSampler], ome: np.random.Generator) -> Tuple[float, List[np.ndarray]]:
 
     new_alp0, new_alp = alp0, alp.copy()
-    for k_, (ik_ord_, tau_, sampler_) in enumerate(zip(i_ord.T, tau, samplers)):
-        new_alp0, new_alp[k_] = update_single_coef(y, n, i, (k_, ik_ord_), new_alp0, new_alp, tau0, tau_, sampler_, ome)
+    for k_, (tau_, sampler_) in enumerate(zip(tau, samplers)):
+        new_alp0, new_alp[k_] = update_single_coef(y, n, i, i_ord, k_, new_alp0, new_alp, tau0, tau_, sampler_, ome)
     return new_alp0, new_alp
 
 
-def update_single_coef(y: np.ndarray, n: np.ndarray, i: np.ndarray, block: Tuple[int, np.ndarray],
+def update_single_coef(y: np.ndarray, n: np.ndarray, i: np.ndarray, i_ord: np.ndarray, k_: int,
                        alp0: np.ndarray, alp: List[np.ndarray], tau0: np.ndarray, tau_: np.ndarray,
                        sampler: LatentGaussSampler, ome: np.random.Generator) -> Tuple[float, np.ndarray]:
 
     def eval_log_f(tb: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
         a = np.hstack([tb - talp0, np.zeros([tb.shape[0], 1])])
         a0 = np.append(talp0, 0)
-        log_p, dk_log_p = eval_kernel(y, n, i, a0, alp[:k_] + [a] + alp[(k_ + 1):], eval_part, block)
+        log_p, dk_log_p = eval_kernel(y, n, i, i_ord, a0, alp[:k_] + [a] + alp[(k_ + 1):], eval_part, k_)
         return log_p, dk_log_p[:, :-1]
 
-    k_, _ = block
     talp_, sig_l_, ttau_, l_ttau_, u_ = remove_resid(alp[k_], tau_)
     talp0, sig_l0, ttau0, l_ttau0, _ = remove_resid(alp0[np.newaxis], tau0)
 

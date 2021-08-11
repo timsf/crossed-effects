@@ -20,7 +20,7 @@ def sample_randfx_fixture(i, df_tau, scale_tau, ome):
     return alp, tau
 
 
-def sample_data_fixture(i, n_inflator, alp0, lam, alp, ome):
+def sample_data_fixture(i, n_inflator, alp0, alp, lam, ome):
 
     y = ome.normal((alp0 + np.sum([alp_[j_] for alp_, j_ in zip(alp, i.T)], 0))[:, np.newaxis], 
                    1 / np.sqrt(lam), size=(i.shape[0], n_inflator))
@@ -45,7 +45,7 @@ def sample_balanced_fixture(j, alp0=0, lam=1, df_tau=2, scale_tau=1, n_inflator=
 
     alp, tau = sample_randfx_fixture(j, df_tau, scale_tau, ome)
     i = sample_balanced_design(j, ome)
-    y1, y2, n = sample_data_fixture(i, n_inflator, alp0, lam, alp, ome)
+    y1, y2, n = sample_data_fixture(i, n_inflator, alp0, alp, lam, ome)
     return (y1, y2, n, i), (alp0, alp, tau, lam)
 
 
