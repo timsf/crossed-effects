@@ -28,7 +28,8 @@ def sample_posterior(y: np.ndarray, j: np.ndarray, i: np.ndarray,
         alp = [np.zeros((j_, y.shape[1])) for j_ in j]
         tau = prior_est_tau
     else:
-        alp0, alp, tau = init
+        alp, tau = init
+        alp0, alp = alp[0][0], alp[1:]
 
     n = np.sum(y, 1)
     i_ord = np.argsort(i, 0)

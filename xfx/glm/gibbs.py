@@ -30,7 +30,8 @@ def sample_disp_posterior(y1: np.ndarray, y2: Optional[np.ndarray], n: np.ndarra
         tau = prior_est_tau
         phi = prior_est_phi
     else:
-        alp0, alp, tau, phi = init
+        alp, tau, phi = init
+        alp0, alp = alp[0][0], alp[1:]
                           
     i_ord = np.argsort(i, 0)
     samplers = [LatentGaussSampler(n) for n in [np.bincount(i_) for i_ in i.T]]

@@ -28,7 +28,8 @@ def sample_posterior(y: np.ndarray, j: np.ndarray, i: np.ndarray, eval_cdf: Cdfu
         tau = prior_est_tau
         ups = np.arange(max(y))
     else:
-        alp0, alp, tau, ups = init
+        alp, tau, ups = init
+        alp0, alp = alp[0][0], alp[1:]
     
     i_ord = np.argsort(i, 0)
     l_ord = np.argsort(y, 0)

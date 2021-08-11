@@ -25,7 +25,8 @@ def sample_posterior(y: np.ndarray, n: np.ndarray, j: np.ndarray, i: np.ndarray,
         tau = prior_est_tau
         nu = np.ones_like(y)
     else:
-        alp0, alp, tau, nu = init
+        alp, tau, nu = init
+        alp0, alp = alp[0][0], alp[1:]
 
     while True:
         x0, x1, x2 = xfx.lm.gibbs.reduce_data((y - n / 2) / nu, np.zeros_like(y), nu, i)

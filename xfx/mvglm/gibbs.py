@@ -28,7 +28,7 @@ def sample_posterior(y: np.ndarray, n: np.ndarray, j: np.ndarray, i: np.ndarray,
         alp = [np.zeros((j_, y.shape[1])) for j_ in j]
         tau = prior_est_tau
     else:
-        alp0, alp, tau = init
+        alp0[0][0], alp[1:], tau = init
 
     i_ord = np.argsort(i, 0)
     samplers = [LatentGaussSampler(n) for n in [np.bincount(i_) for i_ in i.T]]
