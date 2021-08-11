@@ -99,7 +99,8 @@ def update_intercept(y1: np.ndarray, n: np.ndarray, i: np.ndarray, i_ord: np.nda
         return log_p / phi, dk_log_p / phi, d2k_log_p / phi
 
     sampler = LatentGaussSampler(np.ones(1))
-    return sampler.sample(np.array([alp0]), np.zeros(1), np.array([tau0]), eval_log_p, ome)[0]
+    return sampler.sample(np.array([alp0]), np.zeros(1), np.array([tau0 if tau0 != 0 else np.finfo(float).eps]), 
+                          eval_log_p, ome)[0]
 
 
 def update_dispersion(y1: np.ndarray, y2: np.ndarray, n: np.ndarray, i: np.ndarray, i_ord: np.ndarray,
