@@ -37,41 +37,44 @@ def sample_posterior(y: np.ndarray, j: np.ndarray, i: np.ndarray, eval_cdf: Cdfu
     ups_sampler = MvLatentGaussSampler([max(y)])
 
     while True:
-        alp0, alp = update_coefs(y, i, i_ord, alp0, alp, tau, ups, eval_cdf, alp_samplers, ome)
+        alp0, alp = update_coefs(y, j, i, i_ord, alp0, alp, tau, ups, eval_cdf, alp_samplers, ome)
         if not np.all(np.isinf(prior_n_tau)):
             tau = xfx.generic.uv_conjugate.update_factor_precision(j, alp, prior_n_tau, prior_est_tau, ome)
         alp0, ups = update_thresholds(y, i, l_ord, alp0, alp, ups, prior_n_ups, eval_cdf, ups_sampler, ome)
         yield [np.array([alp0])] + alp, tau, ups
 
 
-def update_coefs(y: np.ndarray, i: np.ndarray, i_ord: np.ndarray,
+def update_coefs(y: np.ndarray, j: np.ndarray, i: np.ndarray, i_ord: np.ndarray,
                  alp0: float, alp: List[np.ndarray], tau: np.ndarray, ups: np.ndarray,
                  eval_cdf: Cdfunc, samplers: List[UvLatentGaussSampler], ome: np.random.Generator
                  ) -> Tuple[float, List[np.ndarray]]:
 
     new_alp0, new_alp = alp0, alp.copy()
     for k_, (tau_, sampler_) in enumerate(zip(tau, samplers)):
-        new_alp0, new_alp[k_] = update_single_coef(y, i, i_ord, k_, new_alp0, new_alp, tau_, ups,
+        new_alp0, new_alp[k_] = update_single_coef(y, j, i, i_ord, k_, new_alp0, new_alp, tau_, ups,
                                                    eval_cdf, sampler_, ome)
     return new_alp0, new_alp
 
 
-def update_single_coef(y: np.ndarray, i: np.ndarray, i_ord: np.ndarray, k_: int,
+def update_single_coef(y: np.ndarray, j: np.ndarray, i: np.ndarray, i_ord: np.ndarray, k_: int,
                        alp0: float, alp: List[np.ndarray], tau_: float, ups: np.ndarray, eval_cdf: Cdfunc,
                        sampler: UvLatentGaussSampler, ome: np.random.Generator
                        ) -> Tuple[float, np.ndarray]:
 
     def eval_log_p(b: np.ndarray) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-        log_p, dk_log_p, d2k_log_p = eval_coef_blocks(y, i, i_ord, alp0, alp[:k_] + [b - alp0] + alp[(k_ + 1):], ups, eval_cdf, k_)
+        log_p, dk_log_p, d2k_log_p = eval_coef_blocks(y, j, i, i_ord, alp0, alp[:k_] + [b - alp0] + alp[(k_ + 1):], 
+                                                      ups, eval_cdf, k_)
         return log_p, dk_log_p, d2k_log_p
 
-    new_bet_ = sampler.sample(alp[k_] + alp0, np.repeat(alp0, len(alp[k_])), np.repeat(tau_, len(alp[k_])), eval_log_p, ome)
+    new_bet_ = sampler.sample(alp[k_] + alp0, np.repeat(alp0, len(alp[k_])), np.repeat(tau_, len(alp[k_])), 
+                              eval_log_p, ome)
     new_alp0 = ome.normal(np.mean(new_bet_), 1 / np.sqrt(tau_ * len(alp[k_])))
     new_alp_ = new_bet_ - new_alp0
     return new_alp0, new_alp_
 
 
-def eval_coef_blocks(y: np.ndarray, i: np.ndarray, i_ord: np.ndarray, alp0: float, alp: List[np.ndarray], ups: np.ndarray, 
+def eval_coef_blocks(y: np.ndarray, j: np.ndarray, i: np.ndarray, i_ord: np.ndarray, 
+                     alp0: float, alp: List[np.ndarray], ups: np.ndarray, 
                      eval_cdf: Cdfunc, k_: int = None) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
 
     ups_ext = np.hstack([-np.inf, ups, np.inf])[np.vstack([y, y+1]).T]
@@ -85,7 +88,7 @@ def eval_coef_blocks(y: np.ndarray, i: np.ndarray, i_ord: np.ndarray, alp0: floa
     d2_log_f = d2eta_pmf / pmf - np.square(deta_pmf / pmf)
 
     if k_ is not None:
-        brk = np.cumsum(np.bincount(i[:, k_]))[:-1]
+        brk = np.cumsum(np.bincount(i[:, k_], minlength=j[k_]))[:-1]
         return tuple([groupby(dn_log_f, i_ord[:, k_], brk, np.sum) for dn_log_f in (log_f, d_log_f, d2_log_f)])
     return tuple([np.sum(dn_log_f, 0)[np.newaxis] for dn_log_f in (log_f, d_log_f, d2_log_f)])
 

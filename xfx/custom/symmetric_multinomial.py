@@ -36,30 +36,30 @@ def sample_posterior(y: np.ndarray, j: np.ndarray, i: np.ndarray,
     samplers = [LatentGaussSampler(n) for n in [np.bincount(i_) for i_ in i.T]]
 
     while True:
-        alp0, alp = update_coefs(y, n, i, i_ord, alp0, alp, tau0, tau, samplers, ome)
+        alp0, alp = update_coefs(y, n, j, i, i_ord, alp0, alp, tau0, tau, samplers, ome)
         if not np.all(np.isinf(prior_n_tau)):
             tau = xfx.generic.mv_conjugate.update_factor_precision(j, alp, prior_n_tau, prior_est_tau, ome)
         yield [alp0[np.newaxis]] + alp, tau
 
 
-def update_coefs(y: np.ndarray, n: np.ndarray, i: np.ndarray, i_ord: np.ndarray,
+def update_coefs(y: np.ndarray, n: np.ndarray, j: np.ndarray, i: np.ndarray, i_ord: np.ndarray,
                  alp0: np.ndarray, alp: List[np.ndarray], tau0: np.ndarray, tau: List[np.ndarray],
                  samplers: List[LatentGaussSampler], ome: np.random.Generator) -> Tuple[float, List[np.ndarray]]:
 
     new_alp0, new_alp = alp0, alp.copy()
     for k_, (tau_, sampler_) in enumerate(zip(tau, samplers)):
-        new_alp0, new_alp[k_] = update_single_coef(y, n, i, i_ord, k_, new_alp0, new_alp, tau0, tau_, sampler_, ome)
+        new_alp0, new_alp[k_] = update_single_coef(y, n, j, i, i_ord, k_, new_alp0, new_alp, tau0, tau_, sampler_, ome)
     return new_alp0, new_alp
 
 
-def update_single_coef(y: np.ndarray, n: np.ndarray, i: np.ndarray, i_ord: np.ndarray, k_: int,
+def update_single_coef(y: np.ndarray, n: np.ndarray, j: np.ndarray, i: np.ndarray, i_ord: np.ndarray, k_: int,
                        alp0: np.ndarray, alp: List[np.ndarray], tau0: np.ndarray, tau_: np.ndarray,
                        sampler: LatentGaussSampler, ome: np.random.Generator) -> Tuple[float, np.ndarray]:
 
     def eval_log_f(tb: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
         a = np.hstack([tb - talp0, np.zeros([tb.shape[0], 1])])
         a0 = np.append(talp0, 0)
-        log_p, dk_log_p = eval_kernel(y, n, i, i_ord, a0, alp[:k_] + [a] + alp[(k_ + 1):], eval_part, k_)
+        log_p, dk_log_p = eval_kernel(y, n, j, i, i_ord, a0, alp[:k_] + [a] + alp[(k_ + 1):], eval_part, k_)
         return log_p, dk_log_p[:, :-1]
 
     talp_, sig_l_, ttau_, l_ttau_, u_ = remove_resid(alp[k_], tau_)

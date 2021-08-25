@@ -35,31 +35,31 @@ def sample_posterior(y: np.ndarray, n: np.ndarray, j: np.ndarray, i: np.ndarray,
     samplers = [LatentGaussSampler(n) for n in [np.bincount(i_) for i_ in i.T]]
 
     while True:
-        alp0, alp = update_coefs(y, n, i, i_ord, alp0, alp, tau0, tau, eval_part, samplers, ome)
+        alp0, alp = update_coefs(y, n, j, i, i_ord, alp0, alp, tau0, tau, eval_part, samplers, ome)
         if not np.all(np.isinf(prior_n_tau)):
             tau = xfx.generic.mv_conjugate.update_factor_precision(j, alp, prior_n_tau, prior_est_tau, ome)
         yield [alp0[np.newaxis]] + alp, tau
 
 
-def update_coefs(y: np.ndarray, n: np.ndarray, i: np.ndarray, i_ord: np.ndarray,
+def update_coefs(y: np.ndarray, n: np.ndarray, j: np.ndarray, i: np.ndarray, i_ord: np.ndarray,
                  alp0: np.ndarray, alp: List[np.ndarray], tau0: np.ndarray, tau: List[np.ndarray],
                  eval_part: PartFunc, samplers: List[LatentGaussSampler], ome: np.random.Generator
                  ) -> Tuple[float, List[np.ndarray]]:
 
     new_alp0, new_alp = alp0, alp.copy()
     for k_, (tau_, sampler_) in enumerate(zip(tau, samplers)):
-        new_alp0, new_alp[k_] = update_single_coef(y, n, i, i_ord, k_, new_alp0, new_alp, tau0, tau_, eval_part,
+        new_alp0, new_alp[k_] = update_single_coef(y, n, j, i, i_ord, k_, new_alp0, new_alp, tau0, tau_, eval_part,
                                                    sampler_, ome)
     return new_alp0, new_alp
 
 
-def update_single_coef(y: np.ndarray, n: np.ndarray, i: np.ndarray, i_ord: Tuple[int, np.ndarray], k_: int,
-                       alp0: np.ndarray, alp: List[np.ndarray], tau0: np.ndarray, tau_: np.ndarray,
+def update_single_coef(y: np.ndarray, n: np.ndarray, j: np.ndarray, i: np.ndarray, i_ord: Tuple[int, np.ndarray], 
+                       k_: int, alp0: np.ndarray, alp: List[np.ndarray], tau0: np.ndarray, tau_: np.ndarray,
                        eval_part: PartFunc, sampler: LatentGaussSampler, ome: np.random.Generator
                        ) -> Tuple[float, np.ndarray]:
 
     def eval_log_f(b: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
-        log_p, dk_log_p = eval_kernel(y, n, i, i_ord, alp0, alp[:k_] + [b - alp0] + alp[(k_ + 1):], eval_part, k_)
+        log_p, dk_log_p = eval_kernel(y, n, j, i, i_ord, alp0, alp[:k_] + [b - alp0] + alp[(k_ + 1):], eval_part, k_)
         return log_p, dk_log_p
 
     l_tau, u = np.linalg.eigh(tau_)
@@ -70,8 +70,9 @@ def update_single_coef(y: np.ndarray, n: np.ndarray, i: np.ndarray, i_ord: Tuple
     return new_alp0, new_bet_ - new_alp0
 
 
-def eval_kernel(y: np.ndarray, n: np.ndarray, i: np.ndarray, i_ord: np.ndarray, alp0: np.ndarray, alp: List[np.ndarray],
-                eval_part: PartFunc, k_: int = None) -> Tuple[np.ndarray, np.ndarray]:
+def eval_kernel(y: np.ndarray, n: np.ndarray, j: np.ndarray, i: np.ndarray, i_ord: np.ndarray, 
+                alp0: np.ndarray, alp: List[np.ndarray], eval_part: PartFunc, k_: int = None
+                ) -> Tuple[np.ndarray, np.ndarray]:
 
     eta = alp0 + sum([alp_[i_] for alp_, i_ in zip(alp, i.T)])
     part, d_part = eval_part(eta)
@@ -79,7 +80,7 @@ def eval_kernel(y: np.ndarray, n: np.ndarray, i: np.ndarray, i_ord: np.ndarray, 
     log_f = np.sum(y * eta, 1) - n * part
     d_log_f = y - n[:, np.newaxis] * d_part
 
-    brk = np.cumsum(np.bincount(i[:, k_]))[:-1]
+    brk = np.cumsum(np.bincount(i[:, k_], minlength=j[k_]))[:-1]
     return tuple([groupby(dn_log_f, i_ord[:, k_], brk, np.sum) for dn_log_f in (log_f, d_log_f)])
 
 

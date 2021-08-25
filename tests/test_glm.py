@@ -79,7 +79,7 @@ def test_binomial(j=np.array([2, 3]), n_inflator=int(1e3), n_samples=int(1e3), s
     samples = [x_ for _, x_ in zip(range(n_samples), sampler)]
 
 
-def test_mixture_binomial(j=np.array([2, 3]), n_inflator=int(1e3), n_samples=int(1e3), seed=0):
+def test_aug_binomial(j=np.array([2, 3]), n_inflator=int(1e3), n_samples=int(1e3), seed=0):
 
     ome = np.random.default_rng(seed)
     data, params = sample_balanced_fixture(j, 0, ome=ome)

@@ -77,7 +77,7 @@ def update_intercept_collapsed(x1_: LmSuffStat, x2_sub: List[LmSuffStat], alp_su
 
     s = x1_.len * lam / (tau_ + x1_.len * lam)
     fitted_sum = sum([x2_.len @ alp_ for alp_, x2_ in zip(alp_sub, x2_sub)])
-    post_mean = (s / np.sum(s)) @ ((x1_.sum - fitted_sum) / x1_.len)
+    post_mean = (s / np.sum(s)) @ ((x1_.sum - fitted_sum) / np.where(x1_.len == 0, np.inf, x1_.len))
     post_sd = 1 / np.sqrt(np.sum(s) * tau_)
     return ome.normal(post_mean, post_sd)
 
