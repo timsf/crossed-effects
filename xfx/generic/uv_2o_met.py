@@ -45,9 +45,9 @@ def eval_norm(x: np.ndarray, mu: np.ndarray, tau: np.ndarray) -> np.ndarray:
 
 class LatentGaussSampler(object):
 
-    def __init__(self, n: np.array):
+    def __init__(self, j: int):
 
-        self.emp_prob = [np.ones(len(n))]
+        self.emp_prob = [np.ones(j)]
 
     def sample(self, x_nil: np.ndarray, mu: np.ndarray, tau: np.ndarray,
                f_log_p: Callable[[np.ndarray], Tuple[np.ndarray, np.ndarray, np.ndarray]], ome: np.random.Generator

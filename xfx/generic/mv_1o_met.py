@@ -44,11 +44,10 @@ def sample_norm_cov(mu: np.ndarray, u: np.ndarray, l_sig: np.ndarray, ome: np.ra
 
 class LatentGaussSampler(object):
 
-    def __init__(self, n: np.array, opt_prob: float = .5):
+    def __init__(self, j: int, opt_prob: float = .5):
 
-        self.n = n
-        self.emp_prob = [np.ones(len(n))]
-        self.step = [-np.log(n)]
+        self.emp_prob = [np.ones(j)]
+        self.step = [-np.zeros(j)]
         self.opt_prob = opt_prob
 
     def sample(self, x_nil: np.ndarray, mu: np.ndarray, u: np.ndarray, l_tau: np.ndarray,

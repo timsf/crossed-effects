@@ -4,7 +4,7 @@ import numpy as np
 
 
 def sample_marginal(x: np.ndarray, mu: np.ndarray, tau: np.ndarray, delt: np.ndarray,
-                    f_log_f: Callable[[np.ndarray], Tuple[np.ndarray, np.ndarray]],
+                    f_log_f: Callable[[np.ndarray], Tuple[np.ndarray, np.ndarray, np.ndarray]],
                     ome: np.random.Generator) -> Tuple[np.ndarray, np.ndarray]:
 
     l_tau, u = np.linalg.eigh(tau)
@@ -53,15 +53,14 @@ def sample_norm_cov(mu: np.ndarray, u: np.ndarray, l_sig: np.ndarray, ome: np.ra
 
 class LatentGaussSampler(object):
 
-    def __init__(self, n: np.array, opt_prob: float = .5):
+    def __init__(self, j: int, opt_prob: float = .5):
 
-        self.n = n
-        self.emp_prob = [np.ones(len(n))]
-        self.step = [-np.log(n)]
+        self.emp_prob = [np.ones(j)]
+        self.step = [np.zeros(j)]
         self.opt_prob = opt_prob
 
     def sample(self, x_nil: np.ndarray, mu: np.ndarray, tau: np.ndarray,
-               f_log_f: Callable[[np.ndarray], Tuple[np.ndarray, np.ndarray]], ome: np.random.Generator) -> np.ndarray:
+               f_log_f: Callable[[np.ndarray], Tuple[np.ndarray, np.ndarray, np.ndarray]], ome: np.random.Generator) -> np.ndarray:
 
         try:
             x_prime, emp_prob = sample_marginal(x_nil, mu, tau, np.exp(self.step[-1]), f_log_f, ome)

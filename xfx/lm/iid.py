@@ -1,8 +1,10 @@
+from typing import Tuple
+
 import numpy as np
 
 
 def update_intercept(y1: np.ndarray, n: np.ndarray, j: np.ndarray, i: np.ndarray, 
-                     tau: np.ndarray, lam: float) -> (float, float):
+                     tau: np.ndarray, lam: float) -> Tuple[float, float]:
 
     s = np.diag(1 / (lam * n))
     for k_ in range(i.shape[1]):
@@ -15,11 +17,11 @@ def update_intercept(y1: np.ndarray, n: np.ndarray, j: np.ndarray, i: np.ndarray
 
 
 def update_coefs(y1: np.ndarray, n: np.ndarray, j: np.ndarray, i: np.ndarray, 
-                 tau: np.ndarray, lam: float) -> (np.ndarray, np.ndarray):
+                 tau: np.ndarray, lam: float) -> Tuple[np.ndarray, np.ndarray]:
 
     s11 = np.diag(1 / np.repeat(tau, j))
     s22 = np.diag(1 / (lam * n))
-    s12 = np.zeros((np.sum(j), i.shape[0]))
+    s12 = np.zeros((int(np.sum(j)), i.shape[0]))
 
     for k_ in range(len(j)):
         for j_ in range(j[k_]):

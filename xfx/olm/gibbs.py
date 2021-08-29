@@ -21,6 +21,8 @@ def sample_posterior(y: np.ndarray, j: np.ndarray, i: np.ndarray, eval_cdf: Cdfu
         prior_n_tau = np.ones(len(j))
     if prior_est_tau is None:
         prior_est_tau = np.ones(len(j))
+    if prior_n_ups is None:
+        prior_n_ups = 1
 
     if init is None:
         alp0 = 0
@@ -33,8 +35,8 @@ def sample_posterior(y: np.ndarray, j: np.ndarray, i: np.ndarray, eval_cdf: Cdfu
     
     i_ord = np.argsort(i, 0)
     l_ord = np.argsort(y, 0)
-    alp_samplers = [UvLatentGaussSampler(n) for n in [np.bincount(i_) for i_ in i.T]]
-    ups_sampler = MvLatentGaussSampler([max(y)])
+    alp_samplers = [UvLatentGaussSampler(j_) for j_ in j]
+    ups_sampler = MvLatentGaussSampler(max(y))
 
     while True:
         alp0, alp = update_coefs(y, j, i, i_ord, alp0, alp, tau, ups, eval_cdf, alp_samplers, ome)
@@ -89,9 +91,9 @@ def eval_coef_blocks(y: np.ndarray, j: np.ndarray, i: np.ndarray, i_ord: np.ndar
 
     if k_ is not None:
         brk = np.cumsum(np.bincount(i[:, k_], minlength=j[k_]))[:-1]
-        return tuple([groupby(dn_log_f, i_ord[:, k_], brk, np.sum) for dn_log_f in (log_f, d_log_f, d2_log_f)])
-    return tuple([np.sum(dn_log_f, 0)[np.newaxis] for dn_log_f in (log_f, d_log_f, d2_log_f)])
-
+        return groupby(log_f, i_ord[:, k_], brk, sum), groupby(d_log_f, i_ord[:, k_], brk, sum), \
+               groupby(d2_log_f, i_ord[:, k_], brk, sum)
+    return np.sum(log_f, 0)[np.newaxis], np.sum(d_log_f, 0)[np.newaxis], np.sum(d2_log_f, 0)[np.newaxis]
 
 def update_thresholds(y: np.ndarray, i: np.ndarray, l_ord: np.ndarray,
                       alp0: float, alp: List[np.ndarray], ups: np.ndarray, prior_n_ups: float,
@@ -128,7 +130,7 @@ def eval_thresh_blocks(y: np.ndarray, i: np.ndarray, l_ord: np.ndarray, alp: Lis
     brk = np.cumsum(np.bincount(y))[:-1]
     grp_log_f, grp_d_log_f, grp_d2_log_f = tuple([groupby(dn_log_f, l_ord, brk, sum) for dn_log_f in (log_f, d_log_f, d2_log_f)])
 
-    log_p = np.sum(grp_log_f)
+    log_p = sum(grp_log_f)
     d_log_p = np.zeros(len(phi))
     d_log_p[0] += grp_d_log_f[0, -1]
     for y_ in range(1, max(y)):

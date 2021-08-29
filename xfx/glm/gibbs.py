@@ -11,7 +11,7 @@ PartFunc = Callable[[np.ndarray], Tuple[np.ndarray, np.ndarray, np.ndarray]]
 BaseFunc = Callable[[np.ndarray, np.ndarray, np.ndarray, float], Tuple[float, float, float]]
 
 
-def sample_disp_posterior(y1: np.ndarray, y2: Optional[np.ndarray], n: np.ndarray, j: np.ndarray, i: np.ndarray,
+def sample_disp_posterior(y1: np.ndarray, y2: np.ndarray, n: np.ndarray, j: np.ndarray, i: np.ndarray,
                           eval_part: PartFunc, eval_base: BaseFunc,
                           prior_n_tau: Optional[np.ndarray], prior_est_tau: Optional[np.ndarray],
                           prior_n_phi: Optional[float], prior_est_phi: Optional[float],
@@ -23,18 +23,22 @@ def sample_disp_posterior(y1: np.ndarray, y2: Optional[np.ndarray], n: np.ndarra
         prior_n_tau = np.ones(len(j))
     if prior_est_tau is None:
         prior_est_tau = np.ones(len(j))
+    if prior_n_phi is None:
+        prior_n_phi = 1
+    if prior_est_phi is None:
+        prior_est_phi = 1
 
     if init is None:
         alp0 = 0
         alp = [np.zeros(j_) for j_ in j]
         tau = prior_est_tau
-        phi = prior_est_phi
+        phi = 1
     else:
         alp, tau, phi = init
         alp0, alp = alp[0][0], alp[1:]
                           
     i_ord = np.argsort(i, 0)
-    samplers = [LatentGaussSampler(n) for n in [np.bincount(i_) for i_ in i.T]]
+    samplers = [LatentGaussSampler(j_) for j_ in j]
 
     while True:
         alp0, alp = update_coefs(y1, n, j, i, i_ord, alp0, alp, tau, phi, collapse, eval_part, samplers, ome)
@@ -51,9 +55,9 @@ def sample_posterior(y: np.ndarray, n: np.ndarray, j: np.ndarray, i: np.ndarray,
                      init: Optional[Tuple[List[np.ndarray], np.ndarray]],
                      collapse: bool, ome: np.random.Generator) -> Iterator[Tuple[List[np.ndarray], np.ndarray]]:
 
-    eval_base = lambda _: (0, 0, 0)
+    eval_base = lambda _, __, ___, ____: (0, 0, 0)
     return (the[:-1] for the in
-            sample_disp_posterior(y, None, n, j, i, eval_part, eval_base, prior_n_tau, prior_est_tau, np.inf, 1, 
+            sample_disp_posterior(y, np.empty_like(y), n, j, i, eval_part, eval_base, prior_n_tau, prior_est_tau, np.inf, 1, 
                                   init if init is None else init + (1,), collapse, ome))
 
 
@@ -93,14 +97,14 @@ def update_single_coef(y1: np.ndarray, n: np.ndarray, j: np.ndarray, i: np.ndarr
 
 def update_intercept(y1: np.ndarray, n: np.ndarray, j: np.ndarray, i: np.ndarray, i_ord: np.ndarray,
                      alp0: float, alp: List[np.ndarray], tau0: float, phi: float, eval_part: PartFunc,
-                     ome: np.random.Generator) -> Tuple[float, np.ndarray]:
+                     ome: np.random.Generator) -> float:
 
     def eval_log_p(a: np.ndarray) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         log_p, dk_log_p, d2k_log_p = eval_kernel(y1, n, j, i, i_ord, a[0], alp, eval_part, None)
         return log_p / phi, dk_log_p / phi, d2k_log_p / phi
 
     sampler = LatentGaussSampler(np.ones(1))
-    return sampler.sample(np.array([alp0]), np.zeros(1), np.array([tau0 if tau0 != 0 else np.finfo(float).eps]), 
+    return sampler.sample(np.float_([alp0]), np.zeros(1), np.float_([tau0 if tau0 != 0 else np.finfo(float).eps]), 
                           eval_log_p, ome)[0]
 
 
@@ -145,7 +149,7 @@ def eval_kernel(y1: np.ndarray, n: np.ndarray, j: np.ndarray, i: np.ndarray, i_o
                 alp0: float, alp: List[np.ndarray], eval_part: PartFunc, k_: int = None
                 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
 
-    eta = alp0 + sum([alp_[i_] for alp_, i_ in zip(alp, i.T)])
+    eta = alp0 + np.sum(np.float_([alp_[i_] for alp_, i_ in zip(alp, i.T)]), 0)
     part, d_part, d2_part = eval_part(eta)
 
     log_f = y1 * eta - n * part
@@ -154,10 +158,11 @@ def eval_kernel(y1: np.ndarray, n: np.ndarray, j: np.ndarray, i: np.ndarray, i_o
 
     if k_ is not None:
         brk = np.cumsum(np.bincount(i[:, k_], minlength=j[k_]))[:-1]
-        return tuple([groupby(dn_log_f, i_ord[:, k_], brk, np.sum) for dn_log_f in (log_f, d_log_f, d2_log_f)])
-    return tuple([np.sum(dn_log_f, 0)[np.newaxis] for dn_log_f in (log_f, d_log_f, d2_log_f)])
+        return groupby(log_f, i_ord[:, k_], brk), groupby(d_log_f, i_ord[:, k_], brk), \
+               groupby(d2_log_f, i_ord[:, k_], brk)
+    return np.sum(log_f, 0)[np.newaxis], np.sum(d_log_f, 0)[np.newaxis], np.sum(d2_log_f, 0)[np.newaxis]
 
 
-def groupby(arr: np.ndarray, ord: np.ndarray, brk: np.ndarray, f: Callable[[np.ndarray], float]) -> np.ndarray:
+def groupby(arr: np.ndarray, ord: np.ndarray, brk: np.ndarray) -> np.ndarray:
 
-    return np.array([f(a) for a in np.split(arr[ord], brk)])
+    return np.float_([np.sum(a) for a in np.split(arr[ord], brk)])

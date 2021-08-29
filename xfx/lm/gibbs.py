@@ -11,7 +11,7 @@ import xfx.generic.uv_conjugate
 class LmSuffStat(NamedTuple):
     len: Union[float, np.ndarray, csr_matrix]
     sum: Union[float, np.ndarray, csr_matrix]
-    sum2: Optional[Union[float, np.ndarray, csr_matrix]] = None
+    sum2: Union[float, np.ndarray, csr_matrix]
 
 
 def sample_posterior(y1: np.ndarray, y2: np.ndarray, n: np.ndarray, j: np.ndarray, i: np.ndarray,
@@ -52,7 +52,7 @@ def update_coefs(x1: List[LmSuffStat], x2: Dict[Tuple[int, int], LmSuffStat],
 
     alp_new = alp.copy()
     for k_, (x1_, tau_) in enumerate(zip(x1, tau)):
-        x2_sub = [LmSuffStat(v.len, v.sum) if k_ == k[0] else LmSuffStat(v.len.T, v.sum.T)
+        x2_sub = [LmSuffStat(v.len, v.sum, 0) if k_ == k[0] else LmSuffStat(v.len.T, v.sum.T, 0)
                   for k, v in x2.items() if k_ in k]
         alp_sub = alp_new[:k_] + alp_new[(k_ + 1):]
         if alp0 is None:
@@ -108,7 +108,7 @@ def reduce_data(y1: np.ndarray, y2: np.ndarray, n: np.ndarray, i: np.ndarray
                 ) -> Tuple[LmSuffStat, List[LmSuffStat], Dict[Tuple[int, int], LmSuffStat]]:
 
     x0 = LmSuffStat(*marginalize_table(y1, y2, n, i, 0)[tuple()])
-    x1 = [LmSuffStat(*[v.reindex(np.arange(v.index.max() + 1))[c].fillna(0).values for c in v])
+    x1 = [LmSuffStat(*v.reindex(index=np.arange(v.index.max() + 1)).fillna(0).T.values)
           for v in marginalize_table(y1, y2, n, i, 1).values()]
     x2 = {k: LmSuffStat(*[csr_matrix((v[c].values, v.index.to_frame().T.values)) for c in v])
           for k, v in marginalize_table(y1, y2, n, i, 2).items()}
@@ -116,7 +116,7 @@ def reduce_data(y1: np.ndarray, y2: np.ndarray, n: np.ndarray, i: np.ndarray
 
 
 def marginalize_table(y1: np.ndarray, y2: np.ndarray, n: np.ndarray, i: np.ndarray, order: int
-                      ) -> Dict[Tuple[int, ...], pd.DataFrame]:
+                      ) -> Union[Dict[Tuple[()], pd.Series], Dict[Tuple[int, ...], pd.DataFrame]]:
 
     data = pd.DataFrame(np.vstack([n, y1, y2]).T, index=pd.MultiIndex.from_arrays(i.T)).sort_index()
     if order == 0:

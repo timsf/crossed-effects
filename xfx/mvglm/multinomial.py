@@ -17,6 +17,6 @@ def sample_posterior(y: np.ndarray, j: np.ndarray, i: np.ndarray,
 
 def eval_part(eta: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
 
-    log_g = logsumexp(np.hstack([eta, np.zeros([eta.shape[0], 1])]), 1)
+    log_g = np.float_(logsumexp(np.hstack([eta, np.zeros([eta.shape[0], 1])]), 1))
     d_log_g = np.exp(eta - log_g[:, np.newaxis])
     return log_g, d_log_g

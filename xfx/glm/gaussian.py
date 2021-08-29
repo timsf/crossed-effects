@@ -23,8 +23,8 @@ def eval_part(eta: np.ndarray) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
 
 def eval_base(y1: np.ndarray, y2: np.ndarray, n: np.ndarray, phi: float) -> Tuple[float, float, float]:
 
-    log_g = - np.sum(n) * np.log(2 * np.pi * phi) / 2 - np.sum(y2) / (2 * phi)
-    d_log_g = - np.sum(n) / (2 * phi) + np.sum(y2) / (2 * phi ** 2)
-    d2_log_g = np.sum(n) / (2 * phi ** 2) - np.sum(y2) / phi ** 3
+    log_g = - sum(n) * np.log(2 * np.pi * phi) / 2 - sum(y2) / (2 * phi)
+    d_log_g = - sum(n) / (2 * phi) + sum(y2) / (2 * phi ** 2)
+    d2_log_g = sum(n) / (2 * phi ** 2) - sum(y2) / phi ** 3
     return log_g, d_log_g, d2_log_g
     

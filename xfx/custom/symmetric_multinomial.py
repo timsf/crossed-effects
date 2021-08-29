@@ -33,7 +33,7 @@ def sample_posterior(y: np.ndarray, j: np.ndarray, i: np.ndarray,
 
     n = np.sum(y, 1)
     i_ord = np.argsort(i, 0)
-    samplers = [LatentGaussSampler(n) for n in [np.bincount(i_) for i_ in i.T]]
+    samplers = [LatentGaussSampler(j_) for j_ in j]
 
     while True:
         alp0, alp = update_coefs(y, n, j, i, i_ord, alp0, alp, tau0, tau, samplers, ome)
@@ -44,7 +44,7 @@ def sample_posterior(y: np.ndarray, j: np.ndarray, i: np.ndarray,
 
 def update_coefs(y: np.ndarray, n: np.ndarray, j: np.ndarray, i: np.ndarray, i_ord: np.ndarray,
                  alp0: np.ndarray, alp: List[np.ndarray], tau0: np.ndarray, tau: List[np.ndarray],
-                 samplers: List[LatentGaussSampler], ome: np.random.Generator) -> Tuple[float, List[np.ndarray]]:
+                 samplers: List[LatentGaussSampler], ome: np.random.Generator) -> Tuple[np.ndarray, List[np.ndarray]]:
 
     new_alp0, new_alp = alp0, alp.copy()
     for k_, (tau_, sampler_) in enumerate(zip(tau, samplers)):
@@ -54,7 +54,7 @@ def update_coefs(y: np.ndarray, n: np.ndarray, j: np.ndarray, i: np.ndarray, i_o
 
 def update_single_coef(y: np.ndarray, n: np.ndarray, j: np.ndarray, i: np.ndarray, i_ord: np.ndarray, k_: int,
                        alp0: np.ndarray, alp: List[np.ndarray], tau0: np.ndarray, tau_: np.ndarray,
-                       sampler: LatentGaussSampler, ome: np.random.Generator) -> Tuple[float, np.ndarray]:
+                       sampler: LatentGaussSampler, ome: np.random.Generator) -> Tuple[np.ndarray, np.ndarray]:
 
     def eval_log_f(tb: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
         a = np.hstack([tb - talp0, np.zeros([tb.shape[0], 1])])
@@ -79,11 +79,11 @@ def update_single_coef(y: np.ndarray, n: np.ndarray, j: np.ndarray, i: np.ndarra
     return new_alp0, new_alp_
 
 
-def remove_resid(alp_: np.ndarray, tau_: np.ndarray) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+def remove_resid(alp_: np.ndarray, tau_: np.ndarray) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
 
     sig_l_ = np.linalg.solve(tau_, np.eye(tau_.shape[0])[-1])
     stack = np.vstack([-np.ones(len(sig_l_)), sig_l_, np.repeat(np.sqrt(sig_l_[-1]), len(sig_l_))])
-    update = np.sum([np.outer(a_, b_) for a_, b_ in zip(stack, stack[[1, 0, 2]])], 0)
+    update = sum([np.outer(a_, b_) for a_, b_ in zip(stack, stack[[1, 0, 2]])])
     ttau_ = np.linalg.inv((np.linalg.inv(tau_) + update)[:-1, :-1])
     l_ttau_, u_ = np.linalg.eigh(ttau_)
     talp_ = alp_[:, :-1] - alp_[:, -1][:, np.newaxis]
@@ -99,6 +99,6 @@ def restore_resid(talp_: np.ndarray, sig_l_: np.ndarray, ttau_: np.ndarray, ome:
 
 def eval_part(eta: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
 
-    log_g = logsumexp(eta, 1)
+    log_g = np.float_(logsumexp(eta, 1))
     d_log_g = np.exp(eta - log_g[:, np.newaxis])
     return log_g, d_log_g
