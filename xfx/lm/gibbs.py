@@ -1,5 +1,5 @@
 import itertools as it
-from typing import Dict, Iterator, List, NamedTuple, Optional, Tuple, Union
+from typing import Dict, Iterator, List, NamedTuple, Optional, Tuple
 
 import numpy as np
 import pandas as pd
@@ -8,10 +8,20 @@ from scipy.sparse import csr_matrix
 import xfx.generic.uv_conjugate
 
 
-class LmSuffStat(NamedTuple):
-    len: Union[float, np.ndarray, csr_matrix]
-    sum: Union[float, np.ndarray, csr_matrix]
-    sum2: Union[float, np.ndarray, csr_matrix]
+class SuffStat0(NamedTuple):
+    len: float
+    sum: float
+    sum2: float
+
+
+class SuffStat1(NamedTuple):
+    len: np.ndarray
+    sum: np.ndarray
+
+
+class SuffStat2(NamedTuple):
+    len: csr_matrix
+    sum: csr_matrix
 
 
 def sample_posterior(y1: np.ndarray, y2: np.ndarray, n: np.ndarray, j: np.ndarray, i: np.ndarray,
@@ -46,13 +56,13 @@ def sample_posterior(y1: np.ndarray, y2: np.ndarray, n: np.ndarray, j: np.ndarra
         yield [np.array([alp0])] + alp, tau, lam
 
 
-def update_coefs(x1: List[LmSuffStat], x2: Dict[Tuple[int, int], LmSuffStat],
+def update_coefs(x1: List[SuffStat1], x2: Dict[Tuple[int, int], SuffStat2],
                  alp0: Optional[float], alp: List[np.ndarray], tau: np.ndarray, lam: float,
                  ome: np.random.Generator) -> List[np.ndarray]:
 
     alp_new = alp.copy()
     for k_, (x1_, tau_) in enumerate(zip(x1, tau)):
-        x2_sub = [LmSuffStat(v.len, v.sum, 0) if k_ == k[0] else LmSuffStat(v.len.T, v.sum.T, 0)
+        x2_sub = [SuffStat2(v.len, v.sum) if k_ == k[0] else SuffStat2(v.len.T, v.sum.T)
                   for k, v in x2.items() if k_ in k]
         alp_sub = alp_new[:k_] + alp_new[(k_ + 1):]
         if alp0 is None:
@@ -63,7 +73,7 @@ def update_coefs(x1: List[LmSuffStat], x2: Dict[Tuple[int, int], LmSuffStat],
     return alp_new
 
 
-def update_intercept(x0: LmSuffStat, x1: List[LmSuffStat], alp: List[np.ndarray], lam: float, 
+def update_intercept(x0: SuffStat0, x1: List[SuffStat1], alp: List[np.ndarray], lam: float, 
                      ome: np.random.Generator) -> float:
 
     fitted_sum = sum([alp_ @ x1_.len for alp_, x1_ in zip(alp, x1)])
@@ -72,7 +82,7 @@ def update_intercept(x0: LmSuffStat, x1: List[LmSuffStat], alp: List[np.ndarray]
     return ome.normal(post_mean, post_sd)
 
 
-def update_intercept_collapsed(x1_: LmSuffStat, x2_sub: List[LmSuffStat], alp_sub: List[np.ndarray], tau_: float, 
+def update_intercept_collapsed(x1_: SuffStat1, x2_sub: List[SuffStat2], alp_sub: List[np.ndarray], tau_: float, 
                                lam: float, ome: np.random.Generator) -> float:
 
     s = x1_.len * lam / (tau_ + x1_.len * lam)
@@ -82,7 +92,7 @@ def update_intercept_collapsed(x1_: LmSuffStat, x2_sub: List[LmSuffStat], alp_su
     return ome.normal(post_mean, post_sd)
 
 
-def update_coefs_single(x1_: LmSuffStat, x2_sub: List[LmSuffStat], alp0: float, alp_sub: List[np.ndarray], tau_: float, 
+def update_coefs_single(x1_: SuffStat1, x2_sub: List[SuffStat2], alp0: float, alp_sub: List[np.ndarray], tau_: float, 
                         lam: float, ome: np.random.Generator) -> np.ndarray:
 
     fitted_sum = sum([x2_.len @ alp_ for alp_, x2_ in zip(alp_sub, x2_sub)])
@@ -91,7 +101,7 @@ def update_coefs_single(x1_: LmSuffStat, x2_sub: List[LmSuffStat], alp0: float, 
     return ome.normal(post_mean, post_sd)
 
 
-def update_resid_precision(x0: LmSuffStat, x1: List[LmSuffStat], x2: Dict[Tuple[int, int], LmSuffStat],
+def update_resid_precision(x0: SuffStat0, x1: List[SuffStat1], x2: Dict[Tuple[int, int], SuffStat2],
                            alp0: float, alp: List[np.ndarray], prior_n: float, prior_est: float,
                            ome: np.random.Generator) -> float:
 
@@ -105,21 +115,19 @@ def update_resid_precision(x0: LmSuffStat, x1: List[LmSuffStat], x2: Dict[Tuple[
 
 
 def reduce_data(y1: np.ndarray, y2: np.ndarray, n: np.ndarray, i: np.ndarray
-                ) -> Tuple[LmSuffStat, List[LmSuffStat], Dict[Tuple[int, int], LmSuffStat]]:
+                ) -> Tuple[SuffStat0, List[SuffStat1], Dict[Tuple[int, int], SuffStat2]]:
 
-    x0 = LmSuffStat(*marginalize_table(y1, y2, n, i, 0)[tuple()])
-    x1 = [LmSuffStat(*v.reindex(index=np.arange(v.index.max() + 1)).fillna(0).T.values)
-          for v in marginalize_table(y1, y2, n, i, 1).values()]
-    x2 = {k: LmSuffStat(*[csr_matrix((v[c].values, v.index.to_frame().T.values)) for c in v])
-          for k, v in marginalize_table(y1, y2, n, i, 2).items()}
+    x0 = SuffStat0(np.sum(n), np.sum(y1), np.sum(y2))
+    x1 = [SuffStat1(*v.reindex(index=np.arange(v.index.max() + 1)).fillna(0).T.values)
+          for v in marginalize_table([n, y1], i, 1).values()]
+    x2 = {k: SuffStat2(*[csr_matrix((v[c].values, v.index.to_frame().T.values)) for c in v])
+          for k, v in marginalize_table([n, y1], i, 2).items()}
     return x0, x1, x2
 
 
-def marginalize_table(y1: np.ndarray, y2: np.ndarray, n: np.ndarray, i: np.ndarray, order: int
-                      ) -> Union[Dict[Tuple[()], pd.Series], Dict[Tuple[int, ...], pd.DataFrame]]:
+def marginalize_table(stats: List[np.ndarray], i: np.ndarray, order: int
+                      ) -> Dict[Tuple[int, ...], pd.DataFrame]:
 
-    data = pd.DataFrame(np.vstack([n, y1, y2]).T, index=pd.MultiIndex.from_arrays(i.T)).sort_index()
-    if order == 0:
-        return {tuple(): data.agg(np.sum)}
+    data = pd.DataFrame(np.array(stats).T, index=pd.MultiIndex.from_arrays(i.T)).sort_index()
     return {c: data.groupby(level=c).agg(np.sum)
             for c in it.combinations(list(range(data.index.to_frame().shape[1])), order)}

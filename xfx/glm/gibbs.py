@@ -103,7 +103,7 @@ def update_intercept(y1: np.ndarray, n: np.ndarray, j: np.ndarray, i: np.ndarray
         log_p, dk_log_p, d2k_log_p = eval_kernel(y1, n, j, i, i_ord, a[0], alp, eval_part, None)
         return log_p / phi, dk_log_p / phi, d2k_log_p / phi
 
-    sampler = LatentGaussSampler(np.ones(1))
+    sampler = LatentGaussSampler(1)
     return sampler.sample(np.float_([alp0]), np.zeros(1), np.float_([tau0 if tau0 != 0 else np.finfo(float).eps]), 
                           eval_log_p, ome)[0]
 
