@@ -1,11 +1,15 @@
 from typing import Callable, Tuple
 
 import numpy as np
+import numpy.typing as npt
 
 
-def sample_marginal(x: np.ndarray, mu: np.ndarray, tau: np.ndarray, delt: np.ndarray,
-                    f_log_f: Callable[[np.ndarray], Tuple[np.ndarray, np.ndarray, np.ndarray]],
-                    ome: np.random.Generator) -> Tuple[np.ndarray, np.ndarray]:
+FloatArr = npt.NDArray[np.float_]
+
+
+def sample_marginal(x: FloatArr, mu: FloatArr, tau: FloatArr, delt: FloatArr,
+                    f_log_f: Callable[[FloatArr], Tuple[FloatArr, FloatArr, FloatArr]],
+                    ome: np.random.Generator) -> Tuple[FloatArr, FloatArr]:
 
     l_tau, u = np.linalg.eigh(tau)
     x_log_f, dx_log_f, d2x_log_f = f_log_f(x)
@@ -39,13 +43,13 @@ def sample_marginal(x: np.ndarray, mu: np.ndarray, tau: np.ndarray, delt: np.nda
     return np.where(ome.uniform(size=x.shape[0]) < acc_prob, y.T, x.T).T, acc_prob
 
 
-def eval_norm_prec(x: np.ndarray, mu: np.ndarray, u: np.ndarray, l_tau: np.ndarray) -> np.ndarray:
+def eval_norm_prec(x: FloatArr, mu: FloatArr, u: FloatArr, l_tau: FloatArr) -> FloatArr:
 
     mah = np.sum(np.square(((x - mu) @ u) * np.sqrt(l_tau)), 1)
     return (np.sum(np.log(l_tau), 1) - mah - x.shape[1] * np.log(2 * np.pi)) / 2
 
 
-def sample_norm_cov(mu: np.ndarray, u: np.ndarray, l_sig: np.ndarray, ome: np.random.Generator) -> np.ndarray:
+def sample_norm_cov(mu: FloatArr, u: FloatArr, l_sig: FloatArr, ome: np.random.Generator) -> FloatArr:
 
     z = ome.standard_normal(mu.shape)
     return mu + (z * np.sqrt(l_sig)) @ u.T
@@ -59,8 +63,8 @@ class LatentGaussSampler(object):
         self.step = [np.zeros(j)]
         self.opt_prob = opt_prob
 
-    def sample(self, x_nil: np.ndarray, mu: np.ndarray, tau: np.ndarray,
-               f_log_f: Callable[[np.ndarray], Tuple[np.ndarray, np.ndarray, np.ndarray]], ome: np.random.Generator) -> np.ndarray:
+    def sample(self, x_nil: FloatArr, mu: FloatArr, tau: FloatArr,
+               f_log_f: Callable[[FloatArr], Tuple[FloatArr, FloatArr, FloatArr]], ome: np.random.Generator) -> FloatArr:
 
         try:
             x_prime, emp_prob = sample_marginal(x_nil, mu, tau, np.exp(self.step[-1]), f_log_f, ome)

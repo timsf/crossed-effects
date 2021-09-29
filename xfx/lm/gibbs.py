@@ -2,10 +2,15 @@ import itertools as it
 from typing import Dict, Iterator, List, NamedTuple, Optional, Tuple
 
 import numpy as np
+import numpy.typing as npt
 import pandas as pd
 from scipy.sparse import csr_matrix
 
 import xfx.generic.uv_conjugate
+
+
+IntArr = npt.NDArray[np.int_]
+FloatArr = npt.NDArray[np.float_]
 
 
 class SuffStat0(NamedTuple):
@@ -15,8 +20,8 @@ class SuffStat0(NamedTuple):
 
 
 class SuffStat1(NamedTuple):
-    len: np.ndarray
-    sum: np.ndarray
+    len: FloatArr
+    sum: FloatArr
 
 
 class SuffStat2(NamedTuple):
@@ -24,12 +29,12 @@ class SuffStat2(NamedTuple):
     sum: csr_matrix
 
 
-def sample_posterior(y1: np.ndarray, y2: np.ndarray, n: np.ndarray, j: np.ndarray, i: np.ndarray,
-                     prior_n_tau: np.ndarray = None, prior_est_tau: np.ndarray = None,
+def sample_posterior(y1: FloatArr, y2: FloatArr, n: FloatArr, j: IntArr, i: IntArr,
+                     prior_n_tau: FloatArr = None, prior_est_tau: FloatArr = None,
                      prior_n_lam: float = 1, prior_est_lam: float = 1,
-                     init: Tuple[float, List[np.ndarray], np.ndarray, float] = None,
+                     init: Tuple[float, List[FloatArr], FloatArr, float] = None,
                      collapse: bool = True, ome: np.random.Generator = np.random.default_rng()
-                     ) -> Iterator[Tuple[List[np.ndarray], np.ndarray, float]]:
+                     ) -> Iterator[Tuple[List[FloatArr], FloatArr, float]]:
 
     if prior_n_tau is None:
         prior_n_tau = np.ones(len(j))
@@ -57,8 +62,8 @@ def sample_posterior(y1: np.ndarray, y2: np.ndarray, n: np.ndarray, j: np.ndarra
 
 
 def update_coefs(x1: List[SuffStat1], x2: Dict[Tuple[int, int], SuffStat2],
-                 alp0: Optional[float], alp: List[np.ndarray], tau: np.ndarray, lam: float,
-                 ome: np.random.Generator) -> List[np.ndarray]:
+                 alp0: Optional[float], alp: List[FloatArr], tau: FloatArr, lam: float,
+                 ome: np.random.Generator) -> List[FloatArr]:
 
     alp_new = alp.copy()
     for k_, (x1_, tau_) in enumerate(zip(x1, tau)):
@@ -73,7 +78,7 @@ def update_coefs(x1: List[SuffStat1], x2: Dict[Tuple[int, int], SuffStat2],
     return alp_new
 
 
-def update_intercept(x0: SuffStat0, x1: List[SuffStat1], alp: List[np.ndarray], lam: float, 
+def update_intercept(x0: SuffStat0, x1: List[SuffStat1], alp: List[FloatArr], lam: float, 
                      ome: np.random.Generator) -> float:
 
     fitted_sum = sum([alp_ @ x1_.len for alp_, x1_ in zip(alp, x1)])
@@ -82,7 +87,7 @@ def update_intercept(x0: SuffStat0, x1: List[SuffStat1], alp: List[np.ndarray], 
     return ome.normal(post_mean, post_sd)
 
 
-def update_intercept_collapsed(x1_: SuffStat1, x2_sub: List[SuffStat2], alp_sub: List[np.ndarray], tau_: float, 
+def update_intercept_collapsed(x1_: SuffStat1, x2_sub: List[SuffStat2], alp_sub: List[FloatArr], tau_: float, 
                                lam: float, ome: np.random.Generator) -> float:
 
     s = x1_.len * lam / (tau_ + x1_.len * lam)
@@ -92,8 +97,8 @@ def update_intercept_collapsed(x1_: SuffStat1, x2_sub: List[SuffStat2], alp_sub:
     return ome.normal(post_mean, post_sd)
 
 
-def update_coefs_single(x1_: SuffStat1, x2_sub: List[SuffStat2], alp0: float, alp_sub: List[np.ndarray], tau_: float, 
-                        lam: float, ome: np.random.Generator) -> np.ndarray:
+def update_coefs_single(x1_: SuffStat1, x2_sub: List[SuffStat2], alp0: float, alp_sub: List[FloatArr], tau_: float, 
+                        lam: float, ome: np.random.Generator) -> FloatArr:
 
     fitted_sum = sum([x2_.len @ alp_ for alp_, x2_ in zip(alp_sub, x2_sub)])
     post_mean = lam / (x1_.len * lam + tau_) * (x1_.sum - x1_.len * alp0 - fitted_sum)
@@ -102,7 +107,7 @@ def update_coefs_single(x1_: SuffStat1, x2_sub: List[SuffStat2], alp0: float, al
 
 
 def update_resid_precision(x0: SuffStat0, x1: List[SuffStat1], x2: Dict[Tuple[int, int], SuffStat2],
-                           alp0: float, alp: List[np.ndarray], prior_n: float, prior_est: float,
+                           alp0: float, alp: List[FloatArr], prior_n: float, prior_est: float,
                            ome: np.random.Generator) -> float:
 
     o0 = x0.sum2 + x0.len * alp0 ** 2 - 2 * alp0 * x0.sum
@@ -114,7 +119,7 @@ def update_resid_precision(x0: SuffStat0, x1: List[SuffStat1], x2: Dict[Tuple[in
     return ome.gamma(post_n / 2, 2 / (post_n * post_est))
 
 
-def reduce_data(y1: np.ndarray, y2: np.ndarray, n: np.ndarray, i: np.ndarray
+def reduce_data(y1: FloatArr, y2: FloatArr, n: FloatArr, i: IntArr
                 ) -> Tuple[SuffStat0, List[SuffStat1], Dict[Tuple[int, int], SuffStat2]]:
 
     x0 = SuffStat0(np.sum(n), np.sum(y1), np.sum(y2))
@@ -125,7 +130,7 @@ def reduce_data(y1: np.ndarray, y2: np.ndarray, n: np.ndarray, i: np.ndarray
     return x0, x1, x2
 
 
-def marginalize_table(stats: List[np.ndarray], i: np.ndarray, order: int
+def marginalize_table(stats: List[FloatArr], i: IntArr, order: int
                       ) -> Dict[Tuple[int, ...], pd.DataFrame]:
 
     data = pd.DataFrame(np.array(stats).T, index=pd.MultiIndex.from_arrays(i.T)).sort_index()

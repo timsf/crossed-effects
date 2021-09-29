@@ -1,6 +1,7 @@
 from typing import Iterator, List, Tuple
 
 import numpy as np
+import numpy.typing as npt
 
 import xfx.generic.mv_conjugate
 from xfx.mvglm.gibbs import eval_kernel
@@ -10,11 +11,15 @@ from xfx.generic.mv_1o_met import LatentGaussSampler
 from scipy.special import logsumexp
 
 
-def sample_posterior(y: np.ndarray, j: np.ndarray, i: np.ndarray, 
-                     tau0: np.ndarray = None, prior_n_tau: np.ndarray = None, prior_est_tau: List[np.ndarray] = None, 
-                     init: Tuple[List[np.ndarray], List[np.ndarray]] = None,
+IntArr = npt.NDArray[np.int_]
+FloatArr = npt.NDArray[np.float_]
+
+
+def sample_posterior(y: FloatArr, j: IntArr, i: IntArr, 
+                     tau0: FloatArr = None, prior_n_tau: FloatArr = None, prior_est_tau: List[FloatArr] = None, 
+                     init: Tuple[List[FloatArr], List[FloatArr]] = None,
                      ome: np.random.Generator = np.random.default_rng()
-                     ) -> Iterator[Tuple[List[np.ndarray], List[np.ndarray]]]:
+                     ) -> Iterator[Tuple[List[FloatArr], List[FloatArr]]]:
 
     if tau0 is None:
         tau0 = np.identity(y.shape[1])
@@ -42,9 +47,9 @@ def sample_posterior(y: np.ndarray, j: np.ndarray, i: np.ndarray,
         yield [alp0[np.newaxis]] + alp, tau
 
 
-def update_coefs(y: np.ndarray, n: np.ndarray, j: np.ndarray, i: np.ndarray, i_ord: np.ndarray,
-                 alp0: np.ndarray, alp: List[np.ndarray], tau0: np.ndarray, tau: List[np.ndarray],
-                 samplers: List[LatentGaussSampler], ome: np.random.Generator) -> Tuple[np.ndarray, List[np.ndarray]]:
+def update_coefs(y: FloatArr, n: FloatArr, j: IntArr, i: IntArr, i_ord: IntArr,
+                 alp0: FloatArr, alp: List[FloatArr], tau0: FloatArr, tau: List[FloatArr],
+                 samplers: List[LatentGaussSampler], ome: np.random.Generator) -> Tuple[FloatArr, List[FloatArr]]:
 
     new_alp0, new_alp = alp0, alp.copy()
     for k_, (tau_, sampler_) in enumerate(zip(tau, samplers)):
@@ -52,11 +57,11 @@ def update_coefs(y: np.ndarray, n: np.ndarray, j: np.ndarray, i: np.ndarray, i_o
     return new_alp0, new_alp
 
 
-def update_single_coef(y: np.ndarray, n: np.ndarray, j: np.ndarray, i: np.ndarray, i_ord: np.ndarray, k_: int,
-                       alp0: np.ndarray, alp: List[np.ndarray], tau0: np.ndarray, tau_: np.ndarray,
-                       sampler: LatentGaussSampler, ome: np.random.Generator) -> Tuple[np.ndarray, np.ndarray]:
+def update_single_coef(y: FloatArr, n: FloatArr, j: IntArr, i: IntArr, i_ord: IntArr, k_: int,
+                       alp0: FloatArr, alp: List[FloatArr], tau0: FloatArr, tau_: FloatArr,
+                       sampler: LatentGaussSampler, ome: np.random.Generator) -> Tuple[FloatArr, FloatArr]:
 
-    def eval_log_f(tb: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+    def eval_log_f(tb: FloatArr) -> Tuple[FloatArr, FloatArr]:
         a = np.hstack([tb - talp0, np.zeros([tb.shape[0], 1])])
         a0 = np.append(talp0, 0)
         log_p, dk_log_p = eval_kernel(y, n, j, i, i_ord, a0, alp[:k_] + [a] + alp[(k_ + 1):], eval_part, k_)
@@ -79,7 +84,7 @@ def update_single_coef(y: np.ndarray, n: np.ndarray, j: np.ndarray, i: np.ndarra
     return new_alp0, new_alp_
 
 
-def remove_resid(alp_: np.ndarray, tau_: np.ndarray) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+def remove_resid(alp_: FloatArr, tau_: FloatArr) -> Tuple[FloatArr, FloatArr, FloatArr, FloatArr, FloatArr]:
 
     sig_l_ = np.linalg.solve(tau_, np.eye(tau_.shape[0])[-1])
     stack = np.vstack([-np.ones(len(sig_l_)), sig_l_, np.repeat(np.sqrt(sig_l_[-1]), len(sig_l_))])
@@ -90,14 +95,14 @@ def remove_resid(alp_: np.ndarray, tau_: np.ndarray) -> Tuple[np.ndarray, np.nda
     return talp_, sig_l_, ttau_, l_ttau_, u_
 
 
-def restore_resid(talp_: np.ndarray, sig_l_: np.ndarray, ttau_: np.ndarray, ome: np.random.Generator) -> np.ndarray:
+def restore_resid(talp_: FloatArr, sig_l_: FloatArr, ttau_: FloatArr, ome: np.random.Generator) -> FloatArr:
 
     alp_fac = (sig_l_[:-1] - sig_l_[-1]) @ ttau_
     ralp_ = ome.normal(talp_ @ alp_fac.T, np.sqrt(sig_l_[-1] - alp_fac @ (sig_l_[:-1] - sig_l_[-1])))
     return np.hstack([ralp_[:, np.newaxis] + talp_, ralp_[:, np.newaxis]])
 
 
-def eval_part(eta: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+def eval_part(eta: FloatArr) -> Tuple[FloatArr, FloatArr]:
 
     log_g = np.float_(logsumexp(eta, 1))
     d_log_g = np.exp(eta - log_g[:, np.newaxis])

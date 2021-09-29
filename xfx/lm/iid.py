@@ -1,10 +1,15 @@
 from typing import Tuple
 
 import numpy as np
+import numpy.typing as npt
 
 
-def update_intercept(y1: np.ndarray, n: np.ndarray, j: np.ndarray, i: np.ndarray, 
-                     tau: np.ndarray, lam: float) -> Tuple[float, float]:
+IntArr = npt.NDArray[np.int_]
+FloatArr = npt.NDArray[np.float_]
+
+
+def update_intercept(y1: FloatArr, n: FloatArr, j: IntArr, i: IntArr, 
+                     tau: FloatArr, lam: float) -> Tuple[float, float]:
 
     s = np.diag(1 / (lam * n))
     for k_ in range(i.shape[1]):
@@ -16,8 +21,8 @@ def update_intercept(y1: np.ndarray, n: np.ndarray, j: np.ndarray, i: np.ndarray
     return post_mean, post_var
 
 
-def update_coefs(y1: np.ndarray, n: np.ndarray, j: np.ndarray, i: np.ndarray, 
-                 tau: np.ndarray, lam: float) -> Tuple[np.ndarray, np.ndarray]:
+def update_coefs(y1: FloatArr, n: FloatArr, j: IntArr, i: IntArr, 
+                 tau: FloatArr, lam: float) -> Tuple[FloatArr, FloatArr]:
 
     s11 = np.diag(1 / np.repeat(tau, j))
     s22 = np.diag(1 / (lam * n))

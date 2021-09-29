@@ -1,13 +1,17 @@
 from typing import List
 
 import numpy as np
+import numpy.typing as npt
 from scipy.stats import wishart
 
 from xfx.misc.linalg import sherman_morrison_update
 
 
-def update_factor_precision(j: np.ndarray, alp: List[np.ndarray], prior_n: np.ndarray, prior_est: List[np.ndarray],
-                            ome: np.random.Generator) -> List[np.ndarray]:
+FloatArr = npt.NDArray[np.float_]
+
+
+def update_factor_precision(j: FloatArr, alp: List[FloatArr], prior_n: FloatArr, prior_est: List[FloatArr],
+                            ome: np.random.Generator) -> List[FloatArr]:
 
     post_n = prior_n + j
     post_est = [prior_est_ if np.isinf(prior_n_)
