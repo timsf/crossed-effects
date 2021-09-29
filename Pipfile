@@ -3,13 +3,6 @@ name = "pypi"
 url = "https://pypi.org/simple"
 verify_ssl = true
 
-[dev-packages]
-pyarrow = "*"
-pylint = "*"
-pystan = "==2.19.1.1"
-pytest = "*"
-rope = "*"
-
 [packages]
 jupyter = "*"
 matplotlib = "*"
@@ -17,6 +10,13 @@ numpy = "*"
 pandas = "*"
 scipy = "*"
 seaborn = "*"
+
+[dev-packages]
+pyarrow = "*"
+pylint = "*"
+pystan = "==2.19.1.1"
+pytest = "*"
+rope = "*"
 
 [requires]
 python_version = "3.8"

@@ -27,7 +27,7 @@
 3. Create a virtual environment and install dependencies:
 
     ```shell
-    pipenv install
+    pipenv install --dev
     ```
 
 4. Start a shell within the virtual environment:
