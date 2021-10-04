@@ -2,17 +2,22 @@ from typing import Iterator, List, Tuple
 from itertools import count
 
 import numpy as np
+import numpy.typing as npt
 from scipy.stats import invgauss
 
 import xfx.lm.gibbs
 import xfx.generic.uv_conjugate
 
 
-def sample_posterior(y: np.ndarray, n: np.ndarray, j: np.ndarray, i: np.ndarray,
-                     prior_n_tau: np.ndarray = None, prior_est_tau: np.ndarray = None,
-                     init: Tuple[List[np.ndarray], np.ndarray, np.ndarray] = None,
+IntArr = npt.NDArray[np.int_]
+FloatArr = npt.NDArray[np.float_]
+
+
+def sample_posterior(y: FloatArr, n: FloatArr, j: IntArr, i: IntArr,
+                     prior_n_tau: FloatArr = None, prior_est_tau: FloatArr = None,
+                     init: Tuple[List[FloatArr], FloatArr, FloatArr] = None,
                      ome: np.random.Generator = np.random.default_rng()
-                     ) -> Iterator[Tuple[List[np.ndarray], np.ndarray, float]]:
+                     ) -> Iterator[Tuple[List[FloatArr], FloatArr, FloatArr]]:
 
     if prior_n_tau is None:
         prior_n_tau = np.ones(len(j))
@@ -38,9 +43,9 @@ def sample_posterior(y: np.ndarray, n: np.ndarray, j: np.ndarray, i: np.ndarray,
         yield [np.array([alp0])] + alp, tau, nu
 
 
-def update_latent(n: np.ndarray, i: np.ndarray, alp0: float, alp: List[np.ndarray], ome: np.random.Generator) -> np.ndarray:
+def update_latent(n: FloatArr, i: IntArr, alp0: float, alp: List[FloatArr], ome: np.random.Generator) -> FloatArr:
 
-    eta = alp0 + sum([alp_[i_] for alp_, i_ in zip(alp, i.T)])
+    eta = np.float_(alp0 + sum([alp_[i_] for alp_, i_ in zip(alp, i.T)]))
     return np.array([sample_pg(n_, eta_, ome) for n_, eta_ in zip(n, eta)])
 
 
@@ -69,8 +74,6 @@ def sample_jacobi(z: float, ome: np.random.Generator, t: float = .64) -> float:
         series = series_jacobi(x, z, t)
         u = ome.uniform(0, next(series))
         for n, s in enumerate(series, 1):
-            if n > 1:
-                raise Exception
             if bool(n % 2) and u <= s:
                 return x
             if not bool(n % 2) and s < u:

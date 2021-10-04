@@ -1,10 +1,14 @@
 from typing import List
 
 import numpy as np
+import numpy.typing as npt
 
 
-def update_factor_precision(j: np.ndarray, alp: List[np.ndarray], prior_n: np.ndarray, prior_est: np.ndarray, 
-                            ome: np.random.Generator) -> np.ndarray:
+FloatArr = npt.NDArray[np.float_]
+
+
+def update_factor_precision(j: FloatArr, alp: List[FloatArr], prior_n: FloatArr, prior_est: FloatArr, 
+                            ome: np.random.Generator) -> FloatArr:
 
     post_n = prior_n + j
     post_est = np.where(
