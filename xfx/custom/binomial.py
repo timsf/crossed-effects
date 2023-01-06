@@ -3,50 +3,96 @@ from itertools import count
 
 import numpy as np
 import numpy.typing as npt
+import polyagamma as pg
 from scipy.stats import invgauss
 
 import xfx.lm.gibbs
 import xfx.generic.uv_conjugate
+import xfx.generic.reg_conjugate
 
 
 IntArr = npt.NDArray[np.int_]
 FloatArr = npt.NDArray[np.float_]
 
 
-def sample_posterior(y: FloatArr, n: FloatArr, j: IntArr, i: IntArr,
-                     prior_n_tau: FloatArr = None, prior_est_tau: FloatArr = None,
-                     init: Tuple[List[FloatArr], FloatArr, FloatArr] = None,
-                     ome: np.random.Generator = np.random.default_rng()
-                     ) -> Iterator[Tuple[List[FloatArr], FloatArr, FloatArr]]:
+def sample_posterior(
+    y: FloatArr,
+    n: FloatArr,
+    j: IntArr,
+    i: IntArr,
+    x: FloatArr = None,
+    prior_n_tau: FloatArr = None,
+    prior_est_tau: FloatArr = None,
+    init: Tuple[List[FloatArr], FloatArr, FloatArr, FloatArr] = None,
+    collapse: bool = True,
+    ome: np.random.Generator = np.random.default_rng(),
+) -> Iterator[Tuple[List[FloatArr], FloatArr, FloatArr, FloatArr]]:
 
     if prior_n_tau is None:
         prior_n_tau = np.ones(len(j))
     if prior_est_tau is None:
         prior_est_tau = np.ones(len(j))
 
+    if x is None:
+        x = np.zeros([y.shape[0], 0])
+
     if init is None:
         alp0 = 0
         alp = [np.zeros(j_) for j_ in j]
+        bet = np.zeros(x.shape[1])
         tau = prior_est_tau
         nu = np.ones_like(y)
     else:
-        alp, tau, nu = init
+        alp, bet, tau, nu = init
         alp0, alp = alp[0][0], alp[1:]
 
     while True:
-        x0, x1, x2 = xfx.lm.gibbs.reduce_data(y - n / 2, np.zeros_like(y), nu, i)
-        alp = xfx.lm.gibbs.update_coefs(x1, x2, None, alp, tau, 1, ome)
-        alp0 = xfx.lm.gibbs.update_intercept(x0, x1, alp, 1, ome)
+        yr0, yr1, yr2 = xfx.lm.gibbs.reduce_data(y - nu * (x @ bet) - n / 2, np.zeros_like(y), nu, i)
+        alp = xfx.lm.gibbs.update_coefs(yr1, yr2, None if collapse else alp0, alp, tau, 1, ome)
+        # alp0 = xfx.lm.gibbs.update_intercept(yr0, yr1, alp, 1, ome)
+        alp0, bet = update_coefs(y, x, n, i, alp, nu, ome)
         if not np.all(np.isinf(prior_n_tau)):
             tau = xfx.generic.uv_conjugate.update_factor_precision(j, alp, prior_n_tau, prior_est_tau, ome)
-        nu = update_latent(n, i, alp0, alp, ome)
-        yield [np.array([alp0])] + alp, tau, nu
+        nu = update_latent(x, n, i, alp0, alp, bet, True, ome)
+        yield [np.array([alp0])] + alp, bet, tau, nu
 
 
-def update_latent(n: FloatArr, i: IntArr, alp0: float, alp: List[FloatArr], ome: np.random.Generator) -> FloatArr:
+def update_coefs(
+    y: FloatArr,
+    x: FloatArr,
+    n: FloatArr,
+    i: IntArr,
+    alp: List[FloatArr],
+    nu: FloatArr,
+    ome: np.random.Generator,
+) -> Tuple[float, FloatArr]:
 
-    eta = np.float_(alp0 + sum([alp_[i_] for alp_, i_ in zip(alp, i.T)]))
-    return np.array([sample_pg(n_, eta_, ome) for n_, eta_ in zip(n, eta)])
+    alp_mean, alp_prec = xfx.generic.reg_conjugate.est_gls(
+        ((y - n / 2) / nu - sum([alp_[i_] for alp_, i_ in zip(alp, i.T)])),
+        np.hstack([np.ones([x.shape[0], 1]), x]),
+        np.diag(nu),
+    )
+    alp = alp_mean + np.linalg.solve(np.linalg.cholesky(alp_prec).T, ome.standard_normal(x.shape[1] + 1))
+    return alp[0], alp[1:]
+
+
+def update_latent(
+    x: FloatArr,
+    n: FloatArr,
+    i: IntArr,
+    alp0: float,
+    alp: List[FloatArr],
+    bet: FloatArr,
+    exact: bool,
+    ome: np.random.Generator,
+) -> FloatArr:
+
+    eta = np.float_(alp0 + sum([alp_[i_] for alp_, i_ in zip(alp, i.T)]) + x @ bet)
+    if exact:
+        return pg.random_polyagamma(n, eta, method='gamma', random_state=ome)
+    else:
+        return pg.random_polyagamma(n, eta, random_state=ome)
+    # return np.array([sample_pg(n_, eta_, ome) for n_, eta_ in zip(n, eta)])
 
 
 def sample_pg(a: int, b: float, ome: np.random.Generator) -> float:
