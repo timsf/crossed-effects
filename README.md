@@ -9,7 +9,7 @@
 
 ## Instructions for Ubuntu/OSX
 
-0. Install the generic dependencies: `Python 3.8`, `pip`, `pipenv`, `git`:
+0. Install the generic dependencies: `Python 3.10`, `pip`, `poetry`, `git`:
 
 1. Define your project root (`[project]`) and navigate there:
 
@@ -27,13 +27,13 @@
 3. Create a virtual environment and install dependencies:
 
     ```shell
-    pipenv install --dev
+    poetry install
     ```
 
 4. Start a shell within the virtual environment:
 
     ```shell
-    pipenv shell
+    poetry shell
     ```
 
 5. Start the `Jupyter` server:
