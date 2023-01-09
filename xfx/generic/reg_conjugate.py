@@ -17,3 +17,4 @@ def est_gls(
     qN = x.T @ w @ x
     mN = np.linalg.solve(qN, x.T @ w @ y)
     return mN, qN
+crossed_binomial_simstudy
