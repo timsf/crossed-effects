@@ -13,12 +13,17 @@ FloatArr = npt.NDArray[np.float_]
 Cdfunc = Callable[[FloatArr], Tuple[FloatArr, FloatArr, FloatArr]]
 
 
-def sample_posterior(y: FloatArr, j: IntArr, i: IntArr, eval_cdf: Cdfunc,
-                     prior_n_tau: Optional[FloatArr], prior_est_tau: Optional[FloatArr],
-                     prior_n_ups: Optional[float],
-                     init: Optional[Tuple[List[FloatArr], FloatArr, FloatArr]],
-                     ome: np.random.Generator
-                     ) -> Iterator[Tuple[List[FloatArr], FloatArr, FloatArr]]:
+def sample_posterior(
+    y: FloatArr,
+    j: IntArr,
+    i: IntArr,
+    eval_cdf: Cdfunc,
+    prior_n_tau: Optional[FloatArr],
+    prior_est_tau: Optional[FloatArr],
+    prior_n_ups: Optional[float],
+    init: Optional[Tuple[List[FloatArr], FloatArr, FloatArr]],
+    ome: np.random.Generator,
+) -> Iterator[Tuple[List[FloatArr], FloatArr, FloatArr]]:
 
     if prior_n_tau is None:
         prior_n_tau = np.ones(len(j))
@@ -35,7 +40,7 @@ def sample_posterior(y: FloatArr, j: IntArr, i: IntArr, eval_cdf: Cdfunc,
     else:
         alp, tau, ups = init
         alp0, alp = alp[0][0], alp[1:]
-    
+
     i_ord = np.argsort(i, 0)
     l_ord = np.argsort(y, 0)
     alp_samplers = [UvLatentGaussSampler(j_) for j_ in j]
@@ -49,10 +54,19 @@ def sample_posterior(y: FloatArr, j: IntArr, i: IntArr, eval_cdf: Cdfunc,
         yield [np.array([alp0])] + alp, tau, ups
 
 
-def update_coefs(y: FloatArr, j: IntArr, i: IntArr, i_ord: IntArr,
-                 alp0: float, alp: List[FloatArr], tau: FloatArr, ups: FloatArr,
-                 eval_cdf: Cdfunc, samplers: List[UvLatentGaussSampler], ome: np.random.Generator
-                 ) -> Tuple[float, List[FloatArr]]:
+def update_coefs(
+    y: FloatArr,
+    j: IntArr,
+    i: IntArr,
+    i_ord: IntArr,
+    alp0: float,
+    alp: List[FloatArr],
+    tau: FloatArr,
+    ups: FloatArr,
+    eval_cdf: Cdfunc,
+    samplers: List[UvLatentGaussSampler],
+    ome: np.random.Generator,
+) -> Tuple[float, List[FloatArr]]:
 
     new_alp0, new_alp = alp0, alp.copy()
     for k_, (tau_, sampler_) in enumerate(zip(tau, samplers)):
@@ -61,26 +75,44 @@ def update_coefs(y: FloatArr, j: IntArr, i: IntArr, i_ord: IntArr,
     return new_alp0, new_alp
 
 
-def update_single_coef(y: FloatArr, j: IntArr, i: IntArr, i_ord: IntArr, k_: int,
-                       alp0: float, alp: List[FloatArr], tau_: float, ups: FloatArr, eval_cdf: Cdfunc,
-                       sampler: UvLatentGaussSampler, ome: np.random.Generator
-                       ) -> Tuple[float, FloatArr]:
+def update_single_coef(
+    y: FloatArr,
+    j: IntArr,
+    i: IntArr,
+    i_ord: IntArr,
+    k_: int,
+    alp0: float,
+    alp: List[FloatArr],
+    tau_: float,
+    ups: FloatArr,
+    eval_cdf: Cdfunc,
+    sampler: UvLatentGaussSampler,
+    ome: np.random.Generator,
+) -> Tuple[float, FloatArr]:
 
     def eval_log_p(b: FloatArr) -> Tuple[FloatArr, FloatArr, FloatArr]:
-        log_p, dk_log_p, d2k_log_p = eval_coef_blocks(y, j, i, i_ord, alp0, alp[:k_] + [b - alp0] + alp[(k_ + 1):], 
+        log_p, dk_log_p, d2k_log_p = eval_coef_blocks(y, j, i, i_ord, alp0, alp[:k_] + [b - alp0] + alp[(k_ + 1):],
                                                       ups, eval_cdf, k_)
         return log_p, dk_log_p, d2k_log_p
 
-    new_bet_ = sampler.sample(alp[k_] + alp0, np.repeat(alp0, len(alp[k_])), np.repeat(tau_, len(alp[k_])), 
+    new_bet_ = sampler.sample(alp[k_] + alp0, np.repeat(alp0, len(alp[k_])), np.repeat(tau_, len(alp[k_])),
                               eval_log_p, ome)
     new_alp0 = ome.normal(np.mean(new_bet_), 1 / np.sqrt(tau_ * len(alp[k_])))
     new_alp_ = new_bet_ - new_alp0
     return new_alp0, new_alp_
 
 
-def eval_coef_blocks(y: FloatArr, j: IntArr, i: IntArr, i_ord: IntArr, 
-                     alp0: float, alp: List[FloatArr], ups: FloatArr, 
-                     eval_cdf: Cdfunc, k_: int = None) -> Tuple[FloatArr, FloatArr, FloatArr]:
+def eval_coef_blocks(
+    y: FloatArr,
+    j: IntArr,
+    i: IntArr,
+    i_ord: IntArr,
+    alp0: float,
+    alp: List[FloatArr],
+    ups: FloatArr,
+    eval_cdf: Cdfunc,
+    k_: int = None,
+) -> Tuple[FloatArr, FloatArr, FloatArr]:
 
     ups_ext = np.hstack([-np.inf, ups, np.inf])[np.vstack([y, y+1]).T]
     eta = ups_ext - alp0 - sum([alp_[i_] for alp_, i_ in zip(alp, i.T)])[:, np.newaxis]
@@ -98,10 +130,18 @@ def eval_coef_blocks(y: FloatArr, j: IntArr, i: IntArr, i_ord: IntArr,
                groupby(d2_log_f, i_ord[:, k_], brk, sum)
     return np.sum(log_f, 0)[np.newaxis], np.sum(d_log_f, 0)[np.newaxis], np.sum(d2_log_f, 0)[np.newaxis]
 
-def update_thresholds(y: FloatArr, i: IntArr, l_ord: IntArr,
-                      alp0: float, alp: List[FloatArr], ups: FloatArr, prior_n_ups: float,
-                      eval_cdf: Cdfunc, sampler: MvLatentGaussSampler, ome: np.random.Generator
-                      ) -> Tuple[float, FloatArr]:
+def update_thresholds(
+    y: FloatArr,
+    i: IntArr,
+    l_ord: IntArr,
+    alp0: float,
+    alp: List[FloatArr],
+    ups: FloatArr,
+    prior_n_ups: float,
+    eval_cdf: Cdfunc,
+    sampler: MvLatentGaussSampler,
+    ome: np.random.Generator,
+) -> Tuple[float, FloatArr]:
 
     def eval_log_p(p: FloatArr) -> Tuple[FloatArr, FloatArr, FloatArr]:
         if np.any(np.diff(p[0]) < 0):
@@ -117,8 +157,14 @@ def update_thresholds(y: FloatArr, i: IntArr, l_ord: IntArr,
     return new_alp0, new_ups
 
 
-def eval_thresh_blocks(y: FloatArr, i: IntArr, l_ord: IntArr, alp: List[FloatArr], phi: FloatArr, 
-                       eval_cdf: Cdfunc) -> Tuple[float, FloatArr, FloatArr]:
+def eval_thresh_blocks(
+    y: FloatArr,
+    i: IntArr,
+    l_ord: IntArr,
+    alp: List[FloatArr],
+    phi: FloatArr,
+    eval_cdf: Cdfunc,
+) -> Tuple[float, FloatArr, FloatArr]:
 
     phi_ext = np.hstack([-np.inf, phi, np.inf])[np.vstack([y, y+1]).T]
     eta = phi_ext - sum([alp_[i_] for alp_, i_ in zip(alp, i.T)])[:, np.newaxis]
@@ -148,6 +194,11 @@ def eval_thresh_blocks(y: FloatArr, i: IntArr, l_ord: IntArr, alp: List[FloatArr
     return log_p, d_log_p, d2_log_p
 
 
-def groupby(arr: FloatArr, ord: FloatArr, brk: FloatArr, f: Callable[[FloatArr], float]) -> FloatArr:
+def groupby(
+    arr: FloatArr,
+    ord: FloatArr,
+    brk: FloatArr,
+    f: Callable[[FloatArr], float],
+) -> FloatArr:
 
     return np.array([f(a) for a in np.split(arr[ord], brk)])

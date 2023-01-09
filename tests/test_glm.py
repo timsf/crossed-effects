@@ -68,7 +68,7 @@ def test_gaussian(j=np.array([2, 3]), lam=1, n_inflator=int(1e3), n_samples=int(
     samples = [x_ for _, x_ in zip(range(n_samples), sampler)]
 
 
-def test_binomial(j=np.array([2, 3]), n_inflator=int(1e3), n_samples=int(1e3), seed=0):
+def test_binomial(j=np.array([2, 3]), n_inflator=int(1e3), n_samples=int(1e4), seed=4):
 
     ome = np.random.default_rng(seed)
     data, params = sample_balanced_fixture(j, 0, ome=ome)
@@ -79,12 +79,12 @@ def test_binomial(j=np.array([2, 3]), n_inflator=int(1e3), n_samples=int(1e3), s
     samples = [x_ for _, x_ in zip(range(n_samples), sampler)]
 
 
-def test_aug_binomial(j=np.array([2, 3]), n_inflator=int(1e3), n_samples=int(1e3), seed=0):
+def test_aug_binomial(j=np.array([2, 3]), n_inflator=int(1e3), n_samples=int(1e4), seed=4):
 
     ome = np.random.default_rng(seed)
     data, params = sample_balanced_fixture(j, 0, ome=ome)
     eta, i = data
     n = np.repeat(n_inflator, len(eta))
     y1 = ome.binomial(n, expit(eta))
-    sampler = xfx.custom.binomial.sample_posterior(y1, n, j, i, ome=ome)
+    sampler = xfx.custom.binomial.sample_posterior(y1, n, j, i, ome=ome, collapse=True)
     samples = [x_ for _, x_ in zip(range(n_samples), sampler)]

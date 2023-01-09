@@ -8,8 +8,14 @@ IntArr = npt.NDArray[np.int_]
 FloatArr = npt.NDArray[np.float_]
 
 
-def update_intercept(y1: FloatArr, n: FloatArr, j: IntArr, i: IntArr, 
-                     tau: FloatArr, lam: float) -> Tuple[float, float]:
+def update_intercept(
+    y1: FloatArr,
+    n: FloatArr,
+    j: IntArr,
+    i: IntArr,
+    tau: FloatArr,
+    lam: float,
+) -> Tuple[float, float]:
 
     s = np.diag(1 / (lam * n))
     for k_ in range(i.shape[1]):
@@ -21,8 +27,14 @@ def update_intercept(y1: FloatArr, n: FloatArr, j: IntArr, i: IntArr,
     return post_mean, post_var
 
 
-def update_coefs(y1: FloatArr, n: FloatArr, j: IntArr, i: IntArr, 
-                 tau: FloatArr, lam: float) -> Tuple[FloatArr, FloatArr]:
+def update_coefs(
+    y1: FloatArr,
+    n: FloatArr,
+    j: IntArr,
+    i: IntArr,
+    tau: FloatArr,
+    lam: float,
+) -> Tuple[FloatArr, FloatArr]:
 
     s11 = np.diag(1 / np.repeat(tau, j))
     s22 = np.diag(1 / (lam * n))

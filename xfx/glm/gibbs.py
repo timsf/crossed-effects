@@ -14,13 +14,22 @@ PartFunc = Callable[[FloatArr], Tuple[FloatArr, FloatArr, FloatArr]]
 BaseFunc = Callable[[FloatArr, FloatArr, FloatArr, float], Tuple[float, float, float]]
 
 
-def sample_disp_posterior(y1: FloatArr, y2: FloatArr, n: FloatArr, j: IntArr, i: IntArr,
-                          eval_part: PartFunc, eval_base: BaseFunc,
-                          prior_n_tau: Optional[FloatArr], prior_est_tau: Optional[FloatArr],
-                          prior_n_phi: Optional[float], prior_est_phi: Optional[float],
-                          init: Optional[Tuple[List[FloatArr], FloatArr, float]], 
-                          collapse: bool, ome: np.random.Generator
-                          ) -> Iterator[Tuple[List[FloatArr], FloatArr, float]]:
+def sample_disp_posterior(
+    y1: FloatArr,
+    y2: FloatArr,
+    n: FloatArr,
+    j: IntArr,
+    i: IntArr,
+    eval_part: PartFunc,
+    eval_base: BaseFunc,
+    prior_n_tau: Optional[FloatArr],
+    prior_est_tau: Optional[FloatArr],
+    prior_n_phi: Optional[float],
+    prior_est_phi: Optional[float],
+    init: Optional[Tuple[List[FloatArr], FloatArr, float]],
+    collapse: bool,
+    ome: np.random.Generator,
+) -> Iterator[Tuple[List[FloatArr], FloatArr, float]]:
 
     if prior_n_tau is None:
         prior_n_tau = np.ones(len(j))
@@ -39,7 +48,7 @@ def sample_disp_posterior(y1: FloatArr, y2: FloatArr, n: FloatArr, j: IntArr, i:
     else:
         alp, tau, phi = init
         alp0, alp = alp[0][0], alp[1:]
-                          
+
     i_ord = np.argsort(i, 0)
     samplers = [LatentGaussSampler(j_) for j_ in j]
 
@@ -48,26 +57,45 @@ def sample_disp_posterior(y1: FloatArr, y2: FloatArr, n: FloatArr, j: IntArr, i:
         if not np.all(np.isinf(prior_n_tau)):
             tau = xfx.generic.uv_conjugate.update_factor_precision(j, alp, prior_n_tau, prior_est_tau, ome)
         if not np.isinf(prior_n_phi):
-            phi = update_dispersion(y1, y2, n, j, i, i_ord, alp0, alp, phi, 
+            phi = update_dispersion(y1, y2, n, j, i, i_ord, alp0, alp, phi,
                                     eval_part, eval_base, prior_n_phi, prior_est_phi, ome)
         yield [np.array([alp0])] + alp, tau, phi
 
 
-def sample_posterior(y: FloatArr, n: FloatArr, j: IntArr, i: IntArr, 
-                     eval_part: PartFunc, prior_n_tau: Optional[FloatArr], prior_est_tau: Optional[FloatArr],
-                     init: Optional[Tuple[List[FloatArr], FloatArr]],
-                     collapse: bool, ome: np.random.Generator) -> Iterator[Tuple[List[FloatArr], FloatArr]]:
+def sample_posterior(
+    y: FloatArr,
+    n: FloatArr,
+    j: IntArr,
+    i: IntArr,
+    eval_part: PartFunc,
+    prior_n_tau: Optional[FloatArr],
+    prior_est_tau: Optional[FloatArr],
+    init: Optional[Tuple[List[FloatArr], FloatArr]],
+    collapse: bool,
+    ome: np.random.Generator,
+) -> Iterator[Tuple[List[FloatArr], FloatArr]]:
 
     eval_base = lambda _, __, ___, ____: (0, 0, 0)
     return (the[:-1] for the in
-            sample_disp_posterior(y, np.empty_like(y), n, j, i, eval_part, eval_base, prior_n_tau, prior_est_tau, np.inf, 1, 
+            sample_disp_posterior(y, np.empty_like(y), n, j, i, eval_part, eval_base, prior_n_tau, prior_est_tau, np.inf, 1,
                                   init if init is None else init + (1,), collapse, ome))
 
 
-def update_coefs(y1: FloatArr, n: FloatArr, j: IntArr, i: IntArr, i_ord: IntArr,
-                 alp0: float, alp: List[FloatArr], tau: FloatArr, phi: float, collapse: bool,
-                 eval_part: PartFunc, samplers: List[LatentGaussSampler], ome: np.random.Generator
-                 ) -> Tuple[float, List[FloatArr]]:
+def update_coefs(
+    y1: FloatArr,
+    n: FloatArr,
+    j: IntArr,
+    i: IntArr,
+    i_ord: IntArr,
+    alp0: float,
+    alp: List[FloatArr],
+    tau: FloatArr,
+    phi: float,
+    collapse: bool,
+    eval_part: PartFunc,
+    samplers: List[LatentGaussSampler],
+    ome: np.random.Generator,
+) -> Tuple[float, List[FloatArr]]:
 
     new_alp0, new_alp = alp0, alp.copy()
     for k_, (tau_, sampler_) in enumerate(zip(tau, samplers)):
@@ -76,45 +104,79 @@ def update_coefs(y1: FloatArr, n: FloatArr, j: IntArr, i: IntArr, i_ord: IntArr,
     return new_alp0, new_alp
 
 
-def update_single_coef(y1: FloatArr, n: FloatArr, j: IntArr, i: IntArr, i_ord: IntArr, k_: int,
-                       alp0: float, alp: List[FloatArr], tau_: float, phi: float, collapse: bool, 
-                       eval_part: PartFunc, sampler: LatentGaussSampler, ome: np.random.Generator
-                       ) -> Tuple[float, FloatArr]:
+def update_single_coef(
+    y1: FloatArr,
+    n: FloatArr,
+    j: IntArr,
+    i: IntArr,
+    i_ord: IntArr,
+    k_: int,
+    alp0: float,
+    alp: List[FloatArr],
+    tau_: float,
+    phi: float,
+    collapse: bool,
+    eval_part: PartFunc,
+    sampler: LatentGaussSampler,
+    ome: np.random.Generator,
+) -> Tuple[float, FloatArr]:
 
     def eval_log_p(b: FloatArr) -> Tuple[FloatArr, FloatArr, FloatArr]:
-        log_p, dk_log_p, d2k_log_p = eval_kernel(y1, n, j, i, i_ord, alp0, alp[:k_] + [b - alp0] + alp[(k_ + 1):], 
+        log_p, dk_log_p, d2k_log_p = eval_kernel(y1, n, j, i, i_ord, alp0, alp[:k_] + [b - alp0] + alp[(k_ + 1):],
                                                  eval_part, k_)
         return log_p / phi, dk_log_p / phi, d2k_log_p / phi
 
-    new_bet_ = sampler.sample(alp[k_] + alp0, np.repeat(alp0, len(alp[k_])), np.repeat(tau_, len(alp[k_])), 
+    new_bet_ = sampler.sample(alp[k_] + alp0, np.repeat(alp0, len(alp[k_])), np.repeat(tau_, len(alp[k_])),
                               eval_log_p, ome)
     if collapse:
         new_alp0 = ome.normal(np.mean(new_bet_), 1 / np.sqrt(tau_ * len(alp[k_])))
         new_alp_ = new_bet_ - new_alp0
     else:
         new_alp_ = new_bet_ - alp0
-        new_alp0 = update_intercept(y1, n, j, i, i_ord, alp0, alp[:k_] + [new_alp_] + alp[(k_ + 1):], 
+        new_alp0 = update_intercept(y1, n, j, i, i_ord, alp0, alp[:k_] + [new_alp_] + alp[(k_ + 1):],
                                     0, phi, eval_part, ome)
     return new_alp0, new_alp_
 
 
-def update_intercept(y1: FloatArr, n: FloatArr, j: IntArr, i: IntArr, i_ord: IntArr,
-                     alp0: float, alp: List[FloatArr], tau0: float, phi: float, eval_part: PartFunc,
-                     ome: np.random.Generator) -> float:
+def update_intercept(
+    y1: FloatArr,
+    n: FloatArr,
+    j: IntArr,
+    i: IntArr,
+    i_ord: IntArr,
+    alp0: float,
+    alp: List[FloatArr],
+    tau0: float,
+    phi: float,
+    eval_part: PartFunc,
+    ome: np.random.Generator,
+) -> float:
 
     def eval_log_p(a: FloatArr) -> Tuple[FloatArr, FloatArr, FloatArr]:
         log_p, dk_log_p, d2k_log_p = eval_kernel(y1, n, j, i, i_ord, a[0], alp, eval_part, None)
         return log_p / phi, dk_log_p / phi, d2k_log_p / phi
 
     sampler = LatentGaussSampler(1)
-    return sampler.sample(np.float_([alp0]), np.zeros(1), np.float_([tau0 if tau0 != 0 else np.finfo(float).eps]), 
+    return sampler.sample(np.float_([alp0]), np.zeros(1), np.float_([tau0 if tau0 != 0 else np.finfo(float).eps]),
                           eval_log_p, ome)[0]
 
 
-def update_dispersion(y1: FloatArr, y2: FloatArr, n: FloatArr, j: IntArr, i: IntArr, i_ord: IntArr,
-                      alp0: float, alp: List[FloatArr], phi: float,
-                      eval_part: PartFunc, eval_base: BaseFunc, prior_n: float, prior_est: float,
-                      ome: np.random.Generator) -> float:
+def update_dispersion(
+    y1: FloatArr,
+    y2: FloatArr,
+    n: FloatArr,
+    j: IntArr,
+    i: IntArr,
+    i_ord: IntArr,
+    alp0: float,
+    alp: List[FloatArr],
+    phi: float,
+    eval_part: PartFunc,
+    eval_base: BaseFunc,
+    prior_n: float,
+    prior_est: float,
+    ome: np.random.Generator,
+) -> float:
 
     def eval_log_p(phi_: float, log_v: float) -> Tuple[float, float, float]:
         log_g, d_log_g, d2_log_g = eval_base(y1, y2, n, phi_)
@@ -148,9 +210,17 @@ def eval_logprior_phi(phi: float, prior_n: float, prior_est: float) -> Tuple[flo
            (prior_n / 2 + 1) / phi ** 2 - prior_n * prior_est / phi ** 3
 
 
-def eval_kernel(y1: FloatArr, n: FloatArr, j: IntArr, i: IntArr, i_ord: IntArr, 
-                alp0: float, alp: List[FloatArr], eval_part: PartFunc, k_: int = None
-                ) -> Tuple[FloatArr, FloatArr, FloatArr]:
+def eval_kernel(
+    y1: FloatArr,
+    n: FloatArr,
+    j: IntArr,
+    i: IntArr,
+    i_ord: IntArr,
+    alp0: float,
+    alp: List[FloatArr],
+    eval_part: PartFunc,
+    k_: int = None
+) -> Tuple[FloatArr, FloatArr, FloatArr]:
 
     eta = alp0 + np.sum(np.float_([alp_[i_] for alp_, i_ in zip(alp, i.T)]), 0)
     part, d_part, d2_part = eval_part(eta)
