@@ -1,15 +1,16 @@
-from typing import Callable, Iterator, List, Optional, Tuple
+from typing import Iterator
 
 import numpy as np
 import numpy.typing as npt
 
+import xfx.mvglm.generic
 import xfx.generic.mv_conjugate
 from xfx.generic.mv_1o_met import LatentGaussSampler
 
 
 IntArr = npt.NDArray[np.int_]
-FloatArr = npt.NDArray[np.float_]
-PartFunc = Callable[[FloatArr], Tuple[FloatArr, FloatArr]]
+FloatArr = npt.NDArray[np.float64]
+ParamSpace = tuple[list[FloatArr], list[FloatArr]]
 
 
 def sample_posterior(
@@ -17,14 +18,14 @@ def sample_posterior(
     n: FloatArr,
     j: IntArr,
     i: IntArr,
-    eval_part: PartFunc,
-    tau0: Optional[FloatArr],
-    prior_n_tau: Optional[FloatArr],
-    prior_est_tau: Optional[List[FloatArr]],
-    init: Optional[Tuple[List[FloatArr], List[FloatArr]]],
+    eval_part: xfx.mvglm.generic.PartFunc,
+    tau0: FloatArr | None,
+    prior_n_tau: FloatArr | None,
+    prior_est_tau: list[FloatArr] | None,
+    init: ParamSpace | None,
     collapse: bool = True,
     ome: np.random.Generator = np.random.default_rng(),
-) -> Iterator[Tuple[List[FloatArr], List[FloatArr]]]:
+) -> Iterator[ParamSpace]:
 
     if tau0 is None:
         tau0 = np.identity(y.shape[1])
@@ -46,7 +47,7 @@ def sample_posterior(
     samplers = [LatentGaussSampler(j_) for j_ in j]
 
     while True:
-        alp0, alp = update_coefs(y, n, j, i, i_ord, alp0, alp, tau0, tau, eval_part, sampler0, samplers, collapse, ome)
+        alp0, alp = update_coefs(y, n, j, i, i_ord, alp0, alp, np.zeros_like(alp0), tau0, tau, eval_part, sampler0, samplers, collapse, ome)
         if not np.all(np.isinf(prior_n_tau)):
             tau = xfx.generic.mv_conjugate.update_factor_precision(j, alp, prior_n_tau, prior_est_tau, ome)
         yield [alp0[np.newaxis]] + alp, tau
@@ -59,19 +60,20 @@ def update_coefs(
     i: IntArr,
     i_ord: IntArr,
     alp0: FloatArr,
-    alp: List[FloatArr],
+    alp: list[FloatArr],
+    eps: FloatArr,
     tau0: FloatArr,
-    tau: List[FloatArr],
-    eval_part: PartFunc,
+    tau: list[FloatArr],
+    eval_part: xfx.mvglm.generic.PartFunc,
     sampler0: LatentGaussSampler,
-    samplers: List[LatentGaussSampler],
+    samplers: list[LatentGaussSampler],
     collapse: bool,
     ome: np.random.Generator,
-) -> Tuple[FloatArr, List[FloatArr]]:
+) -> tuple[FloatArr[FloatArr]]:
 
     new_alp0, new_alp = alp0, alp.copy()
     for k_, (tau_, sampler_) in enumerate(zip(tau, samplers)):
-        new_alp0, new_alp[k_] = update_single_coef(y, n, j, i, i_ord, k_, new_alp0, new_alp, tau0, tau_, eval_part,
+        new_alp0, new_alp[k_] = update_single_coef(y, n, j, i, i_ord, k_, new_alp0, new_alp, eps, tau0, tau_, eval_part,
                                                    sampler0, sampler_, collapse, ome)
     return new_alp0, new_alp
 
@@ -84,18 +86,19 @@ def update_single_coef(
     i_ord: IntArr,
     k_: int,
     alp0: FloatArr,
-    alp: List[FloatArr],
+    alp: list[FloatArr],
+    eps: FloatArr,
     tau0: FloatArr,
     tau_: FloatArr,
-    eval_part: PartFunc,
+    eval_part: xfx.mvglm.generic.PartFunc,
     sampler0: LatentGaussSampler,
     sampler: LatentGaussSampler,
     collapse: bool,
     ome: np.random.Generator,
-) -> Tuple[FloatArr, FloatArr]:
+) -> tuple[FloatArr, FloatArr]:
 
-    def eval_log_f(b: FloatArr) -> Tuple[FloatArr, FloatArr]:
-        log_p, dk_log_p = eval_kernel(y, n, j, i, i_ord, alp0, alp[:k_] + [b - alp0] + alp[(k_ + 1):], eval_part, k_)
+    def eval_log_f(b: FloatArr) -> tuple[FloatArr, FloatArr]:
+        log_p, dk_log_p = eval_kernel(y, n, j, i, i_ord, alp0 + eps, alp[:k_] + [b - alp0] + alp[(k_ + 1):], eval_part, k_)
         return log_p, dk_log_p
 
     l_tau, u = np.linalg.eigh(tau_)
@@ -107,7 +110,7 @@ def update_single_coef(
         new_alp_ = new_bet_ - new_alp0
     else:
         new_alp_ = new_bet_ - alp0
-        new_alp0 = update_intercept(y, n, j, i, i_ord, alp0, alp[:k_] + [new_alp_] + alp[(k_ + 1):], tau0, eval_part, sampler0, ome)
+        new_alp0 = update_intercept(y, n, j, i, i_ord, alp0, alp[:k_] + [new_alp_] + alp[(k_ + 1):], eps, tau0, eval_part, sampler0, ome)
 
     return new_alp0, new_alp_
 
@@ -119,15 +122,16 @@ def update_intercept(
     i: IntArr,
     i_ord: IntArr,
     alp0: FloatArr,
-    alp: List[FloatArr],
+    alp: list[FloatArr],
+    eps: FloatArr,
     tau0: FloatArr,
-    eval_part: PartFunc,
+    eval_part: xfx.mvglm.generic.PartFunc,
     sampler0: LatentGaussSampler,
     ome: np.random.Generator,
 ) -> FloatArr:
 
-    def eval_log_f(a: FloatArr) -> Tuple[FloatArr, FloatArr]:
-        log_p, dk_log_p = eval_kernel(y, n, j, i, i_ord, a[0], alp, eval_part, None)
+    def eval_log_f(a: FloatArr) -> tuple[FloatArr, FloatArr]:
+        log_p, dk_log_p = eval_kernel(y, n, j, i, i_ord, a[0] + eps, alp, eval_part, None)
         return log_p, dk_log_p
 
     l_tau, u = np.linalg.eigh(tau0)
@@ -142,16 +146,13 @@ def eval_kernel(
     i: IntArr,
     i_ord: IntArr,
     alp0: FloatArr,
-    alp: List[FloatArr],
-    eval_part: PartFunc,
+    alp: list[FloatArr],
+    eval_part: xfx.mvglm.generic.PartFunc,
     k_: int = None,
-) -> Tuple[FloatArr, FloatArr]:
+) -> tuple[FloatArr, FloatArr]:
 
-    eta = alp0 + sum([alp_[i_] for alp_, i_ in zip(alp, i.T)])
-    part, d_part = eval_part(eta)
-
-    log_f = np.sum(y * eta, 1) - n * part
-    d_log_f = y - n[:, np.newaxis] * d_part
+    eta = eval_lin_pred(i, alp0, alp)
+    log_f, d_log_f = xfx.mvglm.generic.eval_densities(y, n, eta, eval_part)
 
     if k_ is not None:
         brk = np.cumsum(np.bincount(i[:, k_], minlength=j[k_]))[:-1]
@@ -159,10 +160,11 @@ def eval_kernel(
     return np.sum(log_f, 0)[np.newaxis], np.sum(d_log_f, 0)[np.newaxis]
 
 
-def groupby(
-    arr: FloatArr,
-    ord: FloatArr,
-    brk: FloatArr,
-) -> FloatArr:
+def groupby(arr: FloatArr, ord: FloatArr, brk: FloatArr) -> FloatArr:
 
-    return np.float_([np.sum(a, axis=0) for a in np.split(arr[ord], brk)])
+    return np.float64([np.sum(a, axis=0) for a in np.split(arr[ord], brk)])
+
+
+def eval_lin_pred(i: IntArr, alp0: float, alp: list[FloatArr]) -> FloatArr:
+
+    return alp0 + sum([alp_[i_] for alp_, i_ in zip(alp, i.T)])

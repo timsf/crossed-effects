@@ -5,7 +5,8 @@ from scipy.special import expit
 
 import xfx.glm.binomial
 import xfx.glm.gaussian
-import xfx.custom.binomial
+import xfx.glm.poisson
+import xfx.glm.custom_pg_binomial
 
 
 def sample_coef_fixture(j, tau, ome):
@@ -19,6 +20,7 @@ def sample_randfx_fixture(i, df_tau, scale_tau, ome):
     tau = scale_tau * ome.chisquare(df_tau, len(i))
     alp = sample_coef_fixture(i, tau, ome)
     return alp, tau
+
 
 def sample_balanced_design(j, ome):
 
@@ -79,12 +81,23 @@ def test_binomial(j=np.array([2, 3]), n_inflator=int(1e3), n_samples=int(1e4), s
     samples = [x_ for _, x_ in zip(range(n_samples), sampler)]
 
 
-def test_aug_binomial(j=np.array([2, 3]), n_inflator=int(1e3), n_samples=int(1e4), seed=4):
+def test_poisson(j=np.array([2, 3]), n_inflator=int(1e3), n_samples=int(1e4), seed=4):
+
+    ome = np.random.default_rng(seed)
+    data, params = sample_balanced_fixture(j, 0, ome=ome)
+    eta, i = data
+    n = np.repeat(n_inflator, len(eta))
+    y1 = n * ome.poisson(np.exp(eta))
+    sampler = xfx.glm.binomial.sample_posterior(y1, n, j, i, ome=ome)
+    samples = [x_ for _, x_ in zip(range(n_samples), sampler)]
+
+
+def test_custom_pg_binomial(j=np.array([2, 3]), n_inflator=int(1e3), n_samples=int(1e4), seed=4):
 
     ome = np.random.default_rng(seed)
     data, params = sample_balanced_fixture(j, 0, ome=ome)
     eta, i = data
     n = np.repeat(n_inflator, len(eta))
     y1 = ome.binomial(n, expit(eta))
-    sampler = xfx.custom.binomial.sample_posterior(y1, n, j, i, ome=ome, collapse=True)
+    sampler = xfx.glm.custom_pg_binomial.sample_posterior(y1, n, j, i, ome=ome)
     samples = [x_ for _, x_ in zip(range(n_samples), sampler)]

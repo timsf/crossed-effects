@@ -1,10 +1,10 @@
-from typing import Callable, Tuple
+from typing import Callable
 
 import numpy as np
 import numpy.typing as npt
 
 
-FloatArr = npt.NDArray[np.float_]
+FloatArr = npt.NDArray[np.float64]
 
 
 def sample_marginal(
@@ -13,24 +13,23 @@ def sample_marginal(
     u: FloatArr,
     l_tau: FloatArr,
     delt: FloatArr,
-    f_log_f: Callable[[FloatArr], Tuple[FloatArr, FloatArr]],
+    f_log_f: Callable[[FloatArr], tuple[FloatArr, FloatArr]],
     ome: np.random.Generator,
-) -> Tuple[FloatArr, FloatArr]:
+) -> tuple[FloatArr, FloatArr]:
 
     l_b = l_tau[np.newaxis] + 1 / delt[:, np.newaxis]
     l_a = 1 / l_b
     l_cov = l_a + np.square(l_a) / delt[:, np.newaxis]
     l_prec = 1 / l_cov
-    tau = (u * l_tau) @ u.T
 
     x_log_f, dx_log_f = f_log_f(x)
     x_log_p = x_log_f + eval_norm_prec(x, mu, u, l_tau[np.newaxis])
-    mean_x = (((x / delt[:, np.newaxis] + mu @ tau + dx_log_f) @ u) * l_a) @ u.T
+    mean_x = (((x / delt[:, np.newaxis] + dx_log_f) @ u + mu @ u * l_tau) * l_a) @ u.T
     y = sample_norm_cov(mean_x, u, l_cov, ome)
 
     y_log_f, dy_log_f = f_log_f(y)
     y_log_p = y_log_f + eval_norm_prec(y, mu, u, l_tau[np.newaxis])
-    mean_y = (((y / delt[:, np.newaxis] + mu @ tau + dy_log_f) @ u) * l_a) @ u.T
+    mean_y = (((y / delt[:, np.newaxis] + dy_log_f) @ u + mu @ u * l_tau) * l_a) @ u.T
 
     log_post_odds = y_log_p - x_log_p
     log_prop_odds = eval_norm_prec(y, mean_x, u, l_prec) - eval_norm_prec(x, mean_y, u, l_prec)
@@ -76,7 +75,7 @@ class LatentGaussSampler(object):
         mu: FloatArr,
         u: FloatArr,
         l_tau: FloatArr,
-        f_log_f: Callable[[FloatArr], Tuple[FloatArr, FloatArr]],
+        f_log_f: Callable[[FloatArr], tuple[FloatArr, FloatArr]],
         ome: np.random.Generator,
     ) -> FloatArr:
 

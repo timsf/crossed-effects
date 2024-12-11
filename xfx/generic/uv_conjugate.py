@@ -1,16 +1,14 @@
-from typing import List, Union
-
 import numpy as np
 import numpy.typing as npt
 
 
 IntArr = npt.NDArray[np.int_]
-FloatArr = npt.NDArray[np.float_]
+FloatArr = npt.NDArray[np.float64]
 
 
 def update_factor_precision(
-    j: Union[IntArr, FloatArr],
-    alp: List[FloatArr],
+    j: IntArr | FloatArr,
+    alp: list[FloatArr],
     prior_n: FloatArr,
     prior_est: FloatArr,
     ome: np.random.Generator,
