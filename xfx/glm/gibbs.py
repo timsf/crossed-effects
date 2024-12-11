@@ -150,7 +150,7 @@ def update_single_coef(
     new_bet_ = sampler.sample(alp[k_] + alp0, np.repeat(alp0, len(alp[k_])), np.repeat(tau_, len(alp[k_])),
                               eval_log_p, ome)
     if collapse:
-        new_alp0 = ome.normal(np.mean(new_bet_), 1 / np.sqrt(tau_ * len(alp[k_])))
+        new_alp0 = ome.normal(np.mean(new_bet_), 1 / np.sqrt(tau0 + tau_ * len(alp[k_])))
         new_alp_ = new_bet_ - new_alp0
     else:
         new_alp_ = new_bet_ - alp0
