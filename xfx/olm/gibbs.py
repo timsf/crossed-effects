@@ -1,4 +1,4 @@
-from typing import Callable, Iterator, List, Optional, Tuple
+from typing import Callable, Iterator
 
 import numpy as np
 import numpy.typing as npt
@@ -9,8 +9,9 @@ from xfx.generic.mv_2o_met import LatentGaussSampler as MvLatentGaussSampler
 
 
 IntArr = npt.NDArray[np.int_]
-FloatArr = npt.NDArray[np.float_]
-Cdfunc = Callable[[FloatArr], Tuple[FloatArr, FloatArr, FloatArr]]
+FloatArr = npt.NDArray[np.float64]
+Cdfunc = Callable[[FloatArr], tuple[FloatArr, FloatArr, FloatArr]]
+ParamSpace = tuple[list[FloatArr], FloatArr, FloatArr]
 
 
 def sample_posterior(
@@ -18,12 +19,12 @@ def sample_posterior(
     j: IntArr,
     i: IntArr,
     eval_cdf: Cdfunc,
-    prior_n_tau: Optional[FloatArr],
-    prior_est_tau: Optional[FloatArr],
-    prior_n_ups: Optional[float],
-    init: Optional[Tuple[List[FloatArr], FloatArr, FloatArr]],
+    prior_n_tau: FloatArr | None,
+    prior_est_tau: FloatArr | None,
+    prior_n_ups: float | None,
+    init: ParamSpace | None,
     ome: np.random.Generator,
-) -> Iterator[Tuple[List[FloatArr], FloatArr, FloatArr]]:
+) -> Iterator[ParamSpace]:
 
     if prior_n_tau is None:
         prior_n_tau = np.ones(len(j))
@@ -60,13 +61,13 @@ def update_coefs(
     i: IntArr,
     i_ord: IntArr,
     alp0: float,
-    alp: List[FloatArr],
+    alp: list[FloatArr],
     tau: FloatArr,
     ups: FloatArr,
     eval_cdf: Cdfunc,
-    samplers: List[UvLatentGaussSampler],
+    samplers: list[UvLatentGaussSampler],
     ome: np.random.Generator,
-) -> Tuple[float, List[FloatArr]]:
+) -> tuple[float[FloatArr]]:
 
     new_alp0, new_alp = alp0, alp.copy()
     for k_, (tau_, sampler_) in enumerate(zip(tau, samplers)):
@@ -82,15 +83,15 @@ def update_single_coef(
     i_ord: IntArr,
     k_: int,
     alp0: float,
-    alp: List[FloatArr],
+    alp: list[FloatArr],
     tau_: float,
     ups: FloatArr,
     eval_cdf: Cdfunc,
     sampler: UvLatentGaussSampler,
     ome: np.random.Generator,
-) -> Tuple[float, FloatArr]:
+) -> tuple[float, FloatArr]:
 
-    def eval_log_p(b: FloatArr) -> Tuple[FloatArr, FloatArr, FloatArr]:
+    def eval_log_p(b: FloatArr) -> tuple[FloatArr, FloatArr, FloatArr]:
         log_p, dk_log_p, d2k_log_p = eval_coef_blocks(y, j, i, i_ord, alp0, alp[:k_] + [b - alp0] + alp[(k_ + 1):],
                                                       ups, eval_cdf, k_)
         return log_p, dk_log_p, d2k_log_p
@@ -108,11 +109,11 @@ def eval_coef_blocks(
     i: IntArr,
     i_ord: IntArr,
     alp0: float,
-    alp: List[FloatArr],
+    alp: list[FloatArr],
     ups: FloatArr,
     eval_cdf: Cdfunc,
     k_: int = None,
-) -> Tuple[FloatArr, FloatArr, FloatArr]:
+) -> tuple[FloatArr, FloatArr, FloatArr]:
 
     ups_ext = np.hstack([-np.inf, ups, np.inf])[np.vstack([y, y+1]).T]
     eta = ups_ext - alp0 - sum([alp_[i_] for alp_, i_ in zip(alp, i.T)])[:, np.newaxis]
@@ -135,15 +136,15 @@ def update_thresholds(
     i: IntArr,
     l_ord: IntArr,
     alp0: float,
-    alp: List[FloatArr],
+    alp: list[FloatArr],
     ups: FloatArr,
     prior_n_ups: float,
     eval_cdf: Cdfunc,
     sampler: MvLatentGaussSampler,
     ome: np.random.Generator,
-) -> Tuple[float, FloatArr]:
+) -> tuple[float, FloatArr]:
 
-    def eval_log_p(p: FloatArr) -> Tuple[FloatArr, FloatArr, FloatArr]:
+    def eval_log_p(p: FloatArr) -> tuple[FloatArr, FloatArr, FloatArr]:
         if np.any(np.diff(p[0]) < 0):
             return np.array([-np.inf]), np.zeros((1, len(p[0]))), np.zeros(2 * (len(p[0]),))
         log_p, d_log_p, d2_log_p = eval_thresh_blocks(y, i, l_ord, alp, p[0], eval_cdf)
@@ -161,10 +162,10 @@ def eval_thresh_blocks(
     y: FloatArr,
     i: IntArr,
     l_ord: IntArr,
-    alp: List[FloatArr],
+    alp: list[FloatArr],
     phi: FloatArr,
     eval_cdf: Cdfunc,
-) -> Tuple[float, FloatArr, FloatArr]:
+) -> tuple[float, FloatArr, FloatArr]:
 
     phi_ext = np.hstack([-np.inf, phi, np.inf])[np.vstack([y, y+1]).T]
     eta = phi_ext - sum([alp_[i_] for alp_, i_ in zip(alp, i.T)])[:, np.newaxis]

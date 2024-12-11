@@ -1,11 +1,9 @@
-from typing import Tuple
-
 import numpy as np
 import numpy.typing as npt
 
 
 IntArr = npt.NDArray[np.int_]
-FloatArr = npt.NDArray[np.float_]
+FloatArr = npt.NDArray[np.float64]
 
 
 def update_intercept(
@@ -15,7 +13,7 @@ def update_intercept(
     i: IntArr,
     tau: FloatArr,
     lam: float,
-) -> Tuple[float, float]:
+) -> tuple[float, float]:
 
     s = np.diag(1 / (lam * n))
     for k_ in range(i.shape[1]):
@@ -34,7 +32,7 @@ def update_coefs(
     i: IntArr,
     tau: FloatArr,
     lam: float,
-) -> Tuple[FloatArr, FloatArr]:
+) -> tuple[FloatArr, FloatArr]:
 
     s11 = np.diag(1 / np.repeat(tau, j))
     s22 = np.diag(1 / (lam * n))

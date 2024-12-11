@@ -1,4 +1,4 @@
-from typing import Iterator, List, Tuple
+from typing import Iterator
 
 import numpy as np
 import numpy.typing as npt
@@ -7,7 +7,7 @@ from xfx.glm import gibbs
 
 
 IntArr = npt.NDArray[np.int_]
-FloatArr = npt.NDArray[np.float_]
+FloatArr = npt.NDArray[np.float64]
 
 
 def sample_posterior(
@@ -16,21 +16,22 @@ def sample_posterior(
     n: FloatArr,
     j: IntArr,
     i: IntArr,
+    tau0: float = 0,
     prior_n_tau: FloatArr = None,
     prior_est_tau: FloatArr = None,
     prior_n_phi: float = 1,
     prior_est_phi: float = 1,
-    init: Tuple[List[FloatArr], FloatArr, float] = None,
+    init: gibbs.DispParamSpace = None,
     collapse: bool = True,
     ome: np.random.Generator = np.random.default_rng(),
-) -> Iterator[Tuple[List[FloatArr], FloatArr, float]]:
+) -> Iterator[gibbs.DispParamSpace]:
 
     return gibbs.sample_disp_posterior(
-        y1, y2, n, j, i, eval_part, eval_base,
+        y1, y2, n, j, i, eval_part, eval_base, tau0,
         prior_n_tau, prior_est_tau, prior_n_phi, prior_est_phi, init, collapse, ome)
 
 
-def eval_part(eta: FloatArr) -> Tuple[FloatArr, FloatArr, FloatArr]:
+def eval_part(eta: FloatArr) -> tuple[FloatArr, FloatArr, FloatArr]:
 
     return np.square(eta) / 2, eta, np.ones(len(eta))
 
@@ -40,7 +41,7 @@ def eval_base(
     y2: FloatArr,
     n: FloatArr,
     phi: float,
-) -> Tuple[float, float, float]:
+) -> tuple[float, float, float]:
 
     log_g = - sum(n) * np.log(2 * np.pi * phi) / 2 - sum(y2) / (2 * phi)
     d_log_g = - sum(n) / (2 * phi) + sum(y2) / (2 * phi ** 2)

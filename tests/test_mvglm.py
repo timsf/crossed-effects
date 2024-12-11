@@ -5,7 +5,7 @@ from scipy.special import softmax
 from scipy.stats import wishart
 
 import xfx.mvglm.cmult
-import xfx.custom.symmetric_multinomial
+import xfx.mvglm.custom_fmult
 
 
 def sample_coef_fixture(j, tau, ome):
@@ -42,25 +42,25 @@ def sample_balanced_fixture(l, j, df_tau, scale_tau, n_inflator, ome):
     alp0 = np.zeros(l)
     alp, tau = sample_randfx_fixture(l, j, df_tau, scale_tau, ome)
     i = sample_balanced_design(j, ome)
-    y, n = sample_data_fixture(i, n_inflator, alp0, alp, ome)
-    return (y, n, i), (alp0, alp, tau)
+    eta, n = sample_data_fixture(i, n_inflator, alp0, alp, ome)
+    return (eta, n, i), (alp0, alp, tau)
 
 
-def test_multinomial(j=np.array([2, 3]), l=3, n_inflator=int(1e3), n_samples=int(1e3), seed=0):
+def test_cmult(l=3, j=np.array([2, 3]), n_inflator=int(1e3), n_samples=int(1e3), seed=0):
 
-    ome = np.random.default_rng()
+    ome = np.random.default_rng(seed)
     data, params = sample_balanced_fixture(l, j, 2 * l, 1, n_inflator, ome)
-    y, n, i = data
-    y1 = np.array([ome.multinomial(n_, p_) for n_, p_ in zip(n, softmax(y / n[:, np.newaxis], 1))])
+    eta, n, i = data
+    y1 = np.array([ome.multinomial(n_, p_) for n_, p_ in zip(n, softmax(eta / n[:, np.newaxis], 1))])
     sampler = xfx.mvglm.cmult.sample_posterior(y1, j, i, ome=ome)
     samples = [x_ for _, x_ in zip(range(n_samples), sampler)]
 
 
-def test_symmetric_multinomial(j=np.array([2, 3]), l=3, n_inflator=int(1e3), n_samples=int(1e3), seed=0):
+def test_custom_fmult(l=3, j=np.array([2, 3]), n_inflator=int(1e3), n_samples=int(1e3), seed=0):
 
-    ome = np.random.default_rng()
+    ome = np.random.default_rng(seed)
     data, params = sample_balanced_fixture(l, j, 2 * l, 1, n_inflator, ome)
-    y, n, i = data
-    y1 = np.array([ome.multinomial(n_, p_) for n_, p_ in zip(n, softmax(y / n[:, np.newaxis], 1))])
-    sampler = xfx.custom.symmetric_multinomial.sample_posterior(y1, j, i, ome=ome)
+    eta, n, i = data
+    y1 = np.array([ome.multinomial(n_, p_) for n_, p_ in zip(n, softmax(eta / n[:, np.newaxis], 1))])
+    sampler = xfx.mvglm.custom_fmult.sample_posterior(y1, j, i, ome=ome)
     samples = [x_ for _, x_ in zip(range(n_samples), sampler)]
