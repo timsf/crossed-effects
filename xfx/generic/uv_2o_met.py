@@ -75,7 +75,7 @@ class LatentGaussSampler(object):
         x_nil: FloatArr,
         mu: FloatArr,
         tau: FloatArr,
-        f_log_p: Callable[[FloatArr], [FloatArr, FloatArr, FloatArr]],
+        f_log_p: Callable[[FloatArr], tuple[FloatArr, FloatArr, FloatArr]],
         ome: np.random.Generator,
 ) -> FloatArr:
 
