@@ -69,7 +69,7 @@ def update_coefs(
     samplers: list[LatentGaussSampler],
     collapse: bool,
     ome: np.random.Generator,
-) -> tuple[FloatArr[FloatArr]]:
+) -> tuple[FloatArr, FloatArr]:
 
     new_alp0, new_alp = alp0, alp.copy()
     for k_, (tau_, sampler_) in enumerate(zip(tau, samplers)):

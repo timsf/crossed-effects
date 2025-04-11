@@ -67,7 +67,7 @@ def update_coefs(
     eval_cdf: Cdfunc,
     samplers: list[UvLatentGaussSampler],
     ome: np.random.Generator,
-) -> tuple[float[FloatArr]]:
+) -> tuple[float, FloatArr]:
 
     new_alp0, new_alp = alp0, alp.copy()
     for k_, (tau_, sampler_) in enumerate(zip(tau, samplers)):
