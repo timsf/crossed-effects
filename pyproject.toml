@@ -1,29 +1,16 @@
-[tool.poetry]
+[project]
 name = "xfx"
 version = "0.1.0"
-description = ""
-authors = ["timsf <timstf@gmail.com>"]
+description = "Add your description here"
 readme = "README.md"
-
-[tool.poetry.dependencies]
-python = "^3.10"
-jupyter = "*"
-numpy = "*"
-matplotlib = "*"
-pandas = "*"
-polyagamma = "*"
-scipy = "*"
-seaborn = "*"
-
-[tool.poetry.group.dev.dependencies]
-black = "*"
-coverage = "*"
-flake8 = "*"
-isort = "*"
-mypy = "*"
-pytest = "*"
-rope = "*"
-
-[build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires-python = ">=3.11"
+dependencies = [
+    "jupyter>=1.1.1",
+    "matplotlib>=3.10.1",
+    "numpy>=2.2.4",
+    "pandas>=2.2.3",
+    "polyagamma>=2.0.2",
+    "pytest>=8.3.5",
+    "scipy>=1.15.2",
+    "seaborn>=0.13.2",
+]

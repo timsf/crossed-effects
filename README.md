@@ -12,7 +12,7 @@ Algorithms are documented in the paper at https://arxiv.org/abs/2103.10875.
 
 ## Instructions for Ubuntu/OSX
 
-0. Install the generic dependencies: `Python 3.10`, `pip`, `poetry`, `git`:
+0. Install the generic dependencies: `Python 3.11`, `pip`, `uv`, `git`:
 
 1. Define your project root (`[project]`) and navigate there:
 
@@ -27,25 +27,13 @@ Algorithms are documented in the paper at https://arxiv.org/abs/2103.10875.
     git clone https://github.com/timsf/crossed-effects.git
     ```
 
-3. Create a virtual environment and install dependencies:
+3. Start the `Jupyter` server:
 
     ```shell
-    poetry install
+    uv run jupyter notebook
     ```
 
-4. Start a shell within the virtual environment:
-
-    ```shell
-    poetry shell
-    ```
-
-5. Start the `Jupyter` server:
-
-    ```shell
-    jupyter notebook
-    ```
-
-6. Access the `Jupyter` server in your browser and navigate to the notebook of interest.
+4. Access the `Jupyter` server in your browser and navigate to the notebook of interest.
 
 
 ## Reference
