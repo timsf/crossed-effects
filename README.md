@@ -12,7 +12,7 @@ Algorithms are documented in the paper at https://arxiv.org/abs/2103.10875.
 
 ## Instructions for Ubuntu/OSX
 
-0. Install the generic dependencies: `Python 3.11`, `pip`, `uv`, `git`:
+0. Install the generic dependencies: `Python 3.11`, `uv`, `git`:
 
 1. Define your project root (`[project]`) and navigate there:
 
