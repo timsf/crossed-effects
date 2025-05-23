@@ -7,8 +7,8 @@ from xfx.mixmvglm import gibbs
 from xfx.mvglm import fmult
 
 
-IntArr = npt.NDArray[np.int_]
-FloatArr = npt.NDArray[np.float64]
+IntArr = npt.NDArray[np.integer]
+FloatArr = npt.NDArray[np.floating]
 
 
 def sample_posterior(

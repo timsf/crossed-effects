@@ -4,8 +4,8 @@ import numpy as np
 import numpy.typing as npt
 
 
-IntArr = npt.NDArray[np.int_]
-FloatArr = npt.NDArray[np.float64]
+IntArr = npt.NDArray[np.integer]
+FloatArr = npt.NDArray[np.floating]
 PartFunc2 = Callable[[FloatArr], tuple[FloatArr, FloatArr, FloatArr]]
 
 

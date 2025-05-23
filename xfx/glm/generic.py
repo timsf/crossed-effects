@@ -5,8 +5,8 @@ import numpy.typing as npt
 from scipy.optimize import root_scalar
 
 
-IntArr = npt.NDArray[np.int_]
-FloatArr = npt.NDArray[np.float64]
+IntArr = npt.NDArray[np.integer]
+FloatArr = npt.NDArray[np.floating]
 PartFunc = Callable[[FloatArr], tuple[FloatArr, FloatArr, FloatArr]]
 BaseFunc = Callable[[FloatArr, FloatArr, FloatArr, float], tuple[float, float, float]]
 
@@ -29,7 +29,7 @@ def update_dispersion(
     y1: FloatArr,
     y2: FloatArr,
     n: FloatArr,
-    eta: float,
+    eta: FloatArr,
     phi: float,
     eval_part: PartFunc,
     eval_base: BaseFunc,
@@ -56,7 +56,7 @@ def update_dispersion(
                 return edge
             width += 1
     
-    log_p_nil = np.sum(eval_densities(y1, n, eta, eval_part)[0])
+    log_p_nil = np.sum(eval_densities(y1, n, eta, eval_part)[0]).item()
     log_u = eval_log_p(phi, 0)[0] - ome.exponential()
     lb = root_scalar(eval_log_p, (log_u,), bracket=(brace(False), phi), fprime=True, fprime2=True).root
     ub = root_scalar(eval_log_p, (log_u,), bracket=(phi, brace(True)), fprime=True, fprime2=True).root

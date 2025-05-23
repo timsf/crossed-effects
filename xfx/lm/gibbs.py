@@ -1,5 +1,6 @@
 import itertools as it
 from typing import Iterator, NamedTuple
+from math import sqrt
 
 import numpy as np
 import numpy.typing as npt
@@ -9,8 +10,8 @@ from scipy.sparse import csr_matrix
 import xfx.generic.uv_conjugate
 
 
-IntArr = npt.NDArray[np.int_]
-FloatArr = npt.NDArray[np.float64]
+IntArr = npt.NDArray[np.integer]
+FloatArr = npt.NDArray[np.floating]
 ParamSpace = tuple[list[FloatArr], FloatArr, float]
 
 
@@ -37,11 +38,11 @@ def sample_posterior(
     j: IntArr,
     i: IntArr,
     tau0: float = 0,
-    prior_n_tau: FloatArr = None,
-    prior_est_tau: FloatArr = None,
+    prior_n_tau: FloatArr | None = None,
+    prior_est_tau: FloatArr | None = None,
     prior_n_lam: float = 1,
     prior_est_lam: float = 1,
-    init: ParamSpace = None,
+    init: ParamSpace | None = None,
     collapse: bool = True,
     ome: np.random.Generator = np.random.default_rng(),
 ) -> Iterator[ParamSpace]:
@@ -53,11 +54,12 @@ def sample_posterior(
 
     if init is None:
         alp0 = 0
-        alp = [np.zeros(j_) for j_ in j]
+        alp: list[FloatArr] = [np.zeros(j_) for j_ in j]
         tau = prior_est_tau
         lam = prior_est_lam
     else:
-        alp0, alp, tau, lam = init
+        alp, tau, lam = init
+        alp0, alp = alp[0][0], alp[1:]
 
     x0, x1, x2 = reduce_data(y1, y2, n, i)
 
@@ -104,10 +106,10 @@ def update_intercept(
     ome: np.random.Generator,
 ) -> float:
 
-    fitted_sum = sum([alp_ @ x1_.len for alp_, x1_ in zip(alp, x1)])
+    fitted_sum = float(sum([alp_ @ x1_.len for alp_, x1_ in zip(alp, x1)]))
     post_prec = x0.len * lam + tau0
     post_mean = (x0.sum - fitted_sum) * lam / post_prec
-    post_sd = 1 / np.sqrt(post_prec)
+    post_sd = 1 / sqrt(post_prec)
     return ome.normal(post_mean, post_sd)
 
 
@@ -126,7 +128,7 @@ def update_intercept_collapsed(
     post_prec = tau0 + tau_ * np.sum(s)
     post_mean = (tau_ / post_prec) * s @ ((x1_.sum - fitted_sum) / np.where(x1_.len == 0, np.inf, x1_.len))
     post_sd = 1 / np.sqrt(post_prec)
-    return ome.normal(post_mean, post_sd)
+    return float(ome.normal(post_mean, post_sd))
 
 
 def update_coefs_single(
@@ -171,9 +173,9 @@ def reduce_data(
     y2: FloatArr,
     n: FloatArr,
     i: IntArr,
-) -> tuple[SuffStat0[SuffStat1], dict[tuple[int, int], SuffStat2]]:
+) -> tuple[SuffStat0, list[SuffStat1], dict[tuple[int, int], SuffStat2]]:
 
-    x0 = SuffStat0(np.sum(n), np.sum(y1), np.sum(y2))
+    x0 = SuffStat0(sum(n), sum(y1), sum(y2))
     x1 = [SuffStat1(*v.reindex(index=np.arange(v.index.max() + 1)).fillna(0).T.values)
           for v in marginalize_table([n, y1], i, 1).values()]
     x2 = {k: SuffStat2(*[csr_matrix((v[c].values, v.index.to_frame().T.values)) for c in v])
@@ -188,5 +190,5 @@ def marginalize_table(
 ) -> dict[tuple[int, ...], pd.DataFrame]:
 
     data = pd.DataFrame(np.array(stats).T, index=pd.MultiIndex.from_arrays(i.T)).sort_index()
-    return {c: data.groupby(level=c).agg('sum')
+    return {c: data.groupby(level=c).sum()
             for c in it.combinations(list(range(data.index.to_frame().shape[1])), order)}

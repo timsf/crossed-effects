@@ -12,9 +12,9 @@ from xfx.generic.mv_2o_met import LatentGaussSampler
 from scipy.linalg import block_diag
 
 
-IntArr = npt.NDArray[np.int_]
-FloatArr = npt.NDArray[np.float64]
-ParamSpace = tuple[list[FloatArr], FloatArr, FloatArr]
+IntArr = npt.NDArray[np.integer]
+FloatArr = npt.NDArray[np.floating]
+ParamSpace = tuple[list[FloatArr], FloatArr, list[FloatArr]]
 
 
 def sample_posterior(
@@ -27,7 +27,7 @@ def sample_posterior(
     eval_part2: xfx.mixmvglm.generic.PartFunc2,
     tau0: FloatArr | None,
     prior_n_tau: FloatArr | None,
-    prior_est_tau: FloatArr | None,
+    prior_est_tau: list[FloatArr] | None,
     init: ParamSpace | None,
     ome: np.random.Generator = np.random.default_rng(),
 ) -> Iterator[ParamSpace]:
@@ -37,11 +37,11 @@ def sample_posterior(
     if prior_n_tau is None:
         prior_n_tau = np.repeat(y.shape[1], len(j))
     if prior_est_tau is None:
-        prior_est_tau = len(j) * [np.identity(y.shape[1])]
+        prior_est_tau = len(j) * [np.identity(y.shape[1], dtype=np.floating)]
 
     if init is None:
         alp0 = np.zeros(y.shape[1])
-        alp = [np.zeros((j_, y.shape[1])) for j_ in j]
+        alp: list[FloatArr] = [np.zeros((j_, y.shape[1])) for j_ in j]
         bet = np.zeros((x.shape[1], y.shape[1]))
         tau = prior_est_tau
     else:
@@ -72,13 +72,13 @@ def update_coefs(
     eval_part2: xfx.mixmvglm.generic.PartFunc2,
     sampler: LatentGaussSampler,
     ome: np.random.Generator,
-) -> tuple[float, FloatArr]:
+) -> tuple[FloatArr, FloatArr]:
 
     def eval_log_f(b: FloatArr) -> tuple[FloatArr, FloatArr, FloatArr]:
         g = np.reshape(b, (gam.shape))
         log_p, d_log_p, d2_log_p = eval_kernel(y, n, z, eps, g, eval_part2)
         return (
-            log_p[np.newaxis], 
+            np.array(log_p)[np.newaxis], 
             np.hstack(d_log_p)[np.newaxis], 
             np.vstack(np.dstack(d2_log_p)),
         )
@@ -98,16 +98,16 @@ def eval_kernel(
     alp0: FloatArr,
     bet: FloatArr,
     eval_part2: xfx.mixmvglm.generic.PartFunc2,
-) -> tuple[FloatArr, FloatArr]:
+) -> tuple[float, FloatArr, FloatArr]:
 
     eta = eval_reg_pred(x, alp0, bet)
     log_f, d_log_f, d2_log_f = xfx.mixmvglm.generic.eval_densities2(y, n, eta, eval_part2)
-    log_p = np.sum(log_f)
+    log_p = sum(log_f)
     d_log_p = x.T @ d_log_f
     d2_log_p = np.einsum('ij,ik,ilm->jklm', x, x, d2_log_f, optimize=True)
     return log_p, d_log_p, d2_log_p
 
 
-def eval_reg_pred(x: FloatArr, alp0: float, bet: FloatArr) -> FloatArr:
+def eval_reg_pred(x: FloatArr, alp0: FloatArr, bet: FloatArr) -> FloatArr:
 
     return alp0 + x @ bet

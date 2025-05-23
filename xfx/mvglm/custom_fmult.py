@@ -10,18 +10,18 @@ from xfx.generic.mv_1o_met import LatentGaussSampler
 from xfx.misc.linalg import sherman_morrison_update
 
 
-IntArr = npt.NDArray[np.int_]
-FloatArr = npt.NDArray[np.float64]
+IntArr = npt.NDArray[np.integer]
+FloatArr = npt.NDArray[np.floating]
 
 
 def sample_posterior(
     y: FloatArr,
     j: IntArr,
     i: IntArr,
-    tau0: FloatArr = None,
-    prior_n_tau: FloatArr = None,
-    prior_est_tau: list[FloatArr] = None,
-    init: ParamSpace = None,
+    tau0: FloatArr | None = None,
+    prior_n_tau: FloatArr | None = None,
+    prior_est_tau: list[FloatArr] | None = None,
+    init: ParamSpace | None = None,
     ome: np.random.Generator = np.random.default_rng(),
 ) -> Iterator[ParamSpace]:
 
@@ -30,11 +30,11 @@ def sample_posterior(
     if prior_n_tau is None:
         prior_n_tau = np.repeat(y.shape[1], len(j))
     if prior_est_tau is None:
-        prior_est_tau = len(j) * [np.identity(y.shape[1])]
+        prior_est_tau = len(j) * [np.identity(y.shape[1], dtype=np.floating)]
 
     if init is None:
         alp0 = np.zeros(y.shape[1])
-        alp = [np.zeros((j_, y.shape[1])) for j_ in j]
+        alp: list[FloatArr] = [np.zeros((j_, y.shape[1])) for j_ in j]
         tau = prior_est_tau
     else:
         alp, tau = init
@@ -64,7 +64,7 @@ def update_coefs(
     tau: list[FloatArr],
     samplers: list[LatentGaussSampler],
     ome: np.random.Generator,
-) -> tuple[FloatArr, FloatArr]:
+) -> tuple[FloatArr, list[FloatArr]]:
 
     new_alp0, new_alp = alp0, alp.copy()
     for k_, (tau_, sampler_) in enumerate(zip(tau, samplers)):

@@ -6,8 +6,8 @@ import numpy.typing as npt
 from xfx.glm import gibbs
 
 
-IntArr = npt.NDArray[np.int_]
-FloatArr = npt.NDArray[np.float64]
+IntArr = npt.NDArray[np.integer]
+FloatArr = npt.NDArray[np.floating]
 
 
 def sample_posterior(
@@ -15,10 +15,10 @@ def sample_posterior(
     n: FloatArr,
     j: IntArr,
     i: IntArr,
-    prior_n_tau: FloatArr = None,
-    prior_est_tau: FloatArr = None,
+    prior_n_tau: FloatArr | None = None,
+    prior_est_tau: FloatArr | None = None,
     tau0: float = 0,
-    init: gibbs.ParamSpace = None,
+    init: gibbs.ParamSpace | None = None,
     collapse: bool = True,
     ome: np.random.Generator = np.random.default_rng(),
 ) -> Iterator[gibbs.ParamSpace]:

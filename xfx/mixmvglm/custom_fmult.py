@@ -13,8 +13,8 @@ from xfx.generic.mv_2o_met import LatentGaussSampler
 from scipy.linalg import block_diag
 
 
-IntArr = npt.NDArray[np.int_]
-FloatArr = npt.NDArray[np.float64]
+IntArr = npt.NDArray[np.integer]
+FloatArr = npt.NDArray[np.floating]
 
 
 def sample_posterior(
@@ -22,10 +22,10 @@ def sample_posterior(
     j: IntArr,
     i: IntArr,
     x: FloatArr,
-    tau0: FloatArr = None,
-    prior_n_tau: FloatArr = None,
-    prior_est_tau: list[FloatArr] = None,
-    init: xfx.mixmvglm.gibbs.ParamSpace = None,
+    tau0: FloatArr | None = None,
+    prior_n_tau: FloatArr | None = None,
+    prior_est_tau: list[FloatArr] | None = None,
+    init: xfx.mixmvglm.gibbs.ParamSpace | None = None,
     ome: np.random.Generator = np.random.default_rng(),
 ) -> Iterator[xfx.mixmvglm.gibbs.ParamSpace]:
 

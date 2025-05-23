@@ -1,4 +1,5 @@
 from typing import Callable, Iterator
+from math import sqrt
 
 import numpy as np
 import numpy.typing as npt
@@ -8,8 +9,8 @@ from xfx.generic.uv_2o_met import LatentGaussSampler as UvLatentGaussSampler
 from xfx.generic.mv_2o_met import LatentGaussSampler as MvLatentGaussSampler
 
 
-IntArr = npt.NDArray[np.int_]
-FloatArr = npt.NDArray[np.float64]
+IntArr = npt.NDArray[np.integer]
+FloatArr = npt.NDArray[np.floating]
 Cdfunc = Callable[[FloatArr], tuple[FloatArr, FloatArr, FloatArr]]
 ParamSpace = tuple[list[FloatArr], FloatArr, FloatArr]
 
@@ -35,9 +36,9 @@ def sample_posterior(
 
     if init is None:
         alp0 = 0
-        alp = [np.zeros(j_) for j_ in j]
+        alp: list[FloatArr] = [np.zeros(j_) for j_ in j]
         tau = prior_est_tau
-        ups = np.arange(max(y))
+        ups = np.arange(max(y), dtype=np.floating)
     else:
         alp, tau, ups = init
         alp0, alp = alp[0][0], alp[1:]
@@ -67,7 +68,7 @@ def update_coefs(
     eval_cdf: Cdfunc,
     samplers: list[UvLatentGaussSampler],
     ome: np.random.Generator,
-) -> tuple[float, FloatArr]:
+) -> tuple[float, list[FloatArr]]:
 
     new_alp0, new_alp = alp0, alp.copy()
     for k_, (tau_, sampler_) in enumerate(zip(tau, samplers)):
@@ -98,7 +99,7 @@ def update_single_coef(
 
     new_bet_ = sampler.sample(alp[k_] + alp0, np.repeat(alp0, len(alp[k_])), np.repeat(tau_, len(alp[k_])),
                               eval_log_p, ome)
-    new_alp0 = ome.normal(np.mean(new_bet_), 1 / np.sqrt(tau_ * len(alp[k_])))
+    new_alp0 = ome.normal(np.mean(new_bet_), 1 / sqrt(tau_ * len(alp[k_])))
     new_alp_ = new_bet_ - new_alp0
     return new_alp0, new_alp_
 
@@ -112,7 +113,7 @@ def eval_coef_blocks(
     alp: list[FloatArr],
     ups: FloatArr,
     eval_cdf: Cdfunc,
-    k_: int = None,
+    k_: int | None = None,
 ) -> tuple[FloatArr, FloatArr, FloatArr]:
 
     ups_ext = np.hstack([-np.inf, ups, np.inf])[np.vstack([y, y+1]).T]
@@ -153,7 +154,7 @@ def update_thresholds(
     phi = ups - alp0
     prec_phi = prior_n_ups * np.linalg.inv(np.min(np.mgrid[:len(phi), :len(phi)], 0) + 1)
     new_phi = sampler.sample(phi[np.newaxis], np.repeat(-alp0, len(phi)), prec_phi, eval_log_p, ome)[0]
-    new_alp0 = ome.normal(-new_phi[0], 1 / np.sqrt(prior_n_ups))
+    new_alp0 = ome.normal(-new_phi[0], 1 / sqrt(prior_n_ups))
     new_ups = new_phi + new_alp0
     return new_alp0, new_ups
 
@@ -197,8 +198,8 @@ def eval_thresh_blocks(
 
 def groupby(
     arr: FloatArr,
-    ord: FloatArr,
-    brk: FloatArr,
+    ord: IntArr,
+    brk: IntArr,
     f: Callable[[FloatArr], float],
 ) -> FloatArr:
 

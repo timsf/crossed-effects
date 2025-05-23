@@ -7,8 +7,8 @@ from xfx.mixglm import gibbs
 from xfx.glm import poisson
 
 
-IntArr = npt.NDArray[np.int_]
-FloatArr = npt.NDArray[np.float64]
+IntArr = npt.NDArray[np.integer]
+FloatArr = npt.NDArray[np.floating]
 
 
 def sample_posterior(
@@ -18,9 +18,9 @@ def sample_posterior(
     i: IntArr,
     x: FloatArr,
     tau0: float = 0,
-    prior_n_tau: FloatArr = None,
-    prior_est_tau: FloatArr = None,
-    init: gibbs.ParamSpace = None,
+    prior_n_tau: FloatArr | None = None,
+    prior_est_tau: FloatArr | None = None,
+    init: gibbs.ParamSpace | None = None,
     ome: np.random.Generator = np.random.default_rng(),
 ) -> Iterator[gibbs.ParamSpace]:
 
