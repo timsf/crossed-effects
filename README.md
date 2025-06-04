@@ -12,7 +12,7 @@ Algorithms are documented in the paper at https://arxiv.org/abs/2103.10875.
 
 ## Instructions for Ubuntu/OSX
 
-0. Install the generic dependencies: `Python 3.11`, `uv`, `git`:
+0. Install the generic dependencies `Python 3.11`, `uv`, `git`.
 
 1. Define your project root (`[project]`) and navigate there:
 
@@ -37,15 +37,14 @@ Algorithms are documented in the paper at https://arxiv.org/abs/2103.10875.
 
 
 ## Reference
-@article{Papaspiliopoulos_2023,
-   title={Scalable Bayesian computation for crossed and nested hierarchical models},
-   volume={17},
-   ISSN={1935-7524},
-   url={http://dx.doi.org/10.1214/23-EJS2172},
-   DOI={10.1214/23-ejs2172},
-   number={2},
-   journal={Electronic Journal of Statistics},
-   publisher={Institute of Mathematical Statistics},
-   author={Papaspiliopoulos, Omiros and Stumpf-Fétizon, Timothée and Zanella, Giacomo},
-   year={2023},
-   month=jan }
+
+    @article{papaspiliopoulos2023scalable,
+        title={Scalable Bayesian computation for crossed and nested hierarchical models},
+        author={Papaspiliopoulos, Omiros and Stumpf-F{\'e}tizon, Timoth{\'e}e and Zanella, Giacomo},
+        journal={Electronic Journal of Statistics},
+        volume={17},
+        number={2},
+        pages={3575--3612},
+        year={2023},
+        publisher={The Institute of Mathematical Statistics and the Bernoulli Society}
+    }

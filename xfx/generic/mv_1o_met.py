@@ -4,7 +4,7 @@ import numpy as np
 import numpy.typing as npt
 
 
-FloatArr = npt.NDArray[np.float64]
+FloatArr = npt.NDArray[np.floating]
 
 
 def sample_marginal(
@@ -65,7 +65,7 @@ class LatentGaussSampler(object):
 
     def __init__(self, j: int, opt_prob: float = .5):
 
-        self.emp_prob = [np.ones(j)]
+        self.emp_prob: list[FloatArr] = [np.ones(j)]
         self.step = [-np.zeros(j)]
         self.opt_prob = opt_prob
 

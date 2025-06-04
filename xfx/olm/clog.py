@@ -6,18 +6,18 @@ import numpy.typing as npt
 from xfx.olm import gibbs
 
 
-IntArr = npt.NDArray[np.int_]
-FloatArr = npt.NDArray[np.float64]
+IntArr = npt.NDArray[np.integer]
+FloatArr = npt.NDArray[np.floating]
 
 
 def sample_posterior(
     y: FloatArr,
     j: IntArr,
     i: IntArr,
-    prior_n_tau: FloatArr = None,
-    prior_est_tau: FloatArr = None,
+    prior_n_tau: FloatArr | None = None,
+    prior_est_tau: FloatArr | None = None,
     prior_n_lam: float = 1,
-    init: gibbs.ParamSpace = None,
+    init: gibbs.ParamSpace | None = None,
     ome: np.random.Generator = np.random.default_rng(),
 ) -> Iterator[gibbs.ParamSpace]:
 

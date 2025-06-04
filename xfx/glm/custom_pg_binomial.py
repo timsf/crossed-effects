@@ -10,8 +10,8 @@ import xfx.lm.gibbs
 import xfx.generic.uv_conjugate
 
 
-IntArr = npt.NDArray[np.int_]
-FloatArr = npt.NDArray[np.float64]
+IntArr = npt.NDArray[np.integer]
+FloatArr = npt.NDArray[np.floating]
 ParamSpace = tuple[list[FloatArr], FloatArr, FloatArr]
 
 
@@ -21,9 +21,9 @@ def sample_posterior(
     j: IntArr,
     i: IntArr,
     tau0: float = 0,
-    prior_n_tau: FloatArr = None,
-    prior_est_tau: FloatArr = None,
-    init: ParamSpace = None,
+    prior_n_tau: FloatArr | None = None,
+    prior_est_tau: FloatArr | None = None,
+    init: ParamSpace | None = None,
     collapse: bool = True,
     ome: np.random.Generator = np.random.default_rng(),
 ) -> Iterator[ParamSpace]:
@@ -35,7 +35,7 @@ def sample_posterior(
 
     if init is None:
         alp0 = 0
-        alp = [np.zeros(j_) for j_ in j]
+        alp: list[FloatArr] = [np.zeros(j_) for j_ in j]
         tau = prior_est_tau
         nu = np.ones_like(y)
     else:

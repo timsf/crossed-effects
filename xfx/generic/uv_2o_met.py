@@ -4,7 +4,7 @@ import numpy as np
 import numpy.typing as npt
 
 
-FloatArr = npt.NDArray[np.float64]
+FloatArr = npt.NDArray[np.floating]
 
 
 def sample(
@@ -68,7 +68,7 @@ class LatentGaussSampler(object):
 
     def __init__(self, j: int):
 
-        self.emp_prob = [np.ones(j)]
+        self.emp_prob: list[FloatArr] = [np.ones(j)]
 
     def sample(
         self,
@@ -77,7 +77,7 @@ class LatentGaussSampler(object):
         tau: FloatArr,
         f_log_p: Callable[[FloatArr], tuple[FloatArr, FloatArr, FloatArr]],
         ome: np.random.Generator,
-) -> FloatArr:
+    ) -> FloatArr:
 
         x_prime, acc_prob = sample(x_nil, mu, tau, f_log_p, ome)
         self.emp_prob.append(acc_prob)

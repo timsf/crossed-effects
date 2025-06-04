@@ -5,11 +5,12 @@ from scipy.stats import wishart
 from xfx.misc.linalg import sherman_morrison_update
 
 
-FloatArr = npt.NDArray[np.float64]
+NumArr = npt.NDArray[np.number]
+FloatArr = npt.NDArray[np.floating]
 
 
 def update_factor_precision(
-    j: FloatArr,
+    j: NumArr,
     alp: list[FloatArr],
     prior_n: FloatArr,
     prior_est: list[FloatArr],

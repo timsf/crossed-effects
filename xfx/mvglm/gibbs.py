@@ -8,8 +8,8 @@ import xfx.generic.mv_conjugate
 from xfx.generic.mv_1o_met import LatentGaussSampler
 
 
-IntArr = npt.NDArray[np.int_]
-FloatArr = npt.NDArray[np.float64]
+IntArr = npt.NDArray[np.integer]
+FloatArr = npt.NDArray[np.floating]
 ParamSpace = tuple[list[FloatArr], list[FloatArr]]
 
 
@@ -32,11 +32,11 @@ def sample_posterior(
     if prior_n_tau is None:
         prior_n_tau = np.repeat(y.shape[1], len(j))
     if prior_est_tau is None:
-        prior_est_tau = len(j) * [np.identity(y.shape[1])]
+        prior_est_tau = len(j) * [np.identity(y.shape[1], dtype=np.floating)]
 
     if init is None:
         alp0 = np.zeros(y.shape[1])
-        alp = [np.zeros((j_, y.shape[1])) for j_ in j]
+        alp: list[FloatArr] = [np.zeros((j_, y.shape[1])) for j_ in j]
         tau = prior_est_tau
     else:
         alp, tau = init
@@ -69,7 +69,7 @@ def update_coefs(
     samplers: list[LatentGaussSampler],
     collapse: bool,
     ome: np.random.Generator,
-) -> tuple[FloatArr, FloatArr]:
+) -> tuple[FloatArr, list[FloatArr]]:
 
     new_alp0, new_alp = alp0, alp.copy()
     for k_, (tau_, sampler_) in enumerate(zip(tau, samplers)):
@@ -148,7 +148,7 @@ def eval_kernel(
     alp0: FloatArr,
     alp: list[FloatArr],
     eval_part: xfx.mvglm.generic.PartFunc,
-    k_: int = None,
+    k_: int | None = None,
 ) -> tuple[FloatArr, FloatArr]:
 
     eta = eval_lin_pred(i, alp0, alp)
@@ -160,11 +160,11 @@ def eval_kernel(
     return np.sum(log_f, 0)[np.newaxis], np.sum(d_log_f, 0)[np.newaxis]
 
 
-def groupby(arr: FloatArr, ord: FloatArr, brk: FloatArr) -> FloatArr:
+def groupby(arr: FloatArr, ord: IntArr, brk: IntArr) -> FloatArr:
 
-    return np.float64([np.sum(a, axis=0) for a in np.split(arr[ord], brk)])
+    return np.array([np.sum(a, axis=0) for a in np.split(arr[ord], brk)])
 
 
-def eval_lin_pred(i: IntArr, alp0: float, alp: list[FloatArr]) -> FloatArr:
+def eval_lin_pred(i: IntArr, eps: FloatArr, alp: list[FloatArr]) -> FloatArr:
 
-    return alp0 + sum([alp_[i_] for alp_, i_ in zip(alp, i.T)])
+    return eps + sum([alp_[i_] for alp_, i_ in zip(alp, i.T)])

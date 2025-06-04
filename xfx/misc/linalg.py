@@ -2,7 +2,7 @@ import numpy as np
 import numpy.typing as npt
 
 
-FloatArr = npt.NDArray[np.float64]
+FloatArr = npt.NDArray[np.floating]
 
 
 def sherman_morrison_update(init: FloatArr, a: FloatArr, b: FloatArr) -> FloatArr:

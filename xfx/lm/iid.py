@@ -2,8 +2,8 @@ import numpy as np
 import numpy.typing as npt
 
 
-IntArr = npt.NDArray[np.int_]
-FloatArr = npt.NDArray[np.float64]
+IntArr = npt.NDArray[np.integer]
+FloatArr = npt.NDArray[np.floating]
 
 
 def update_intercept(
@@ -20,8 +20,11 @@ def update_intercept(
         for j_ in np.unique(i[:, k_]):
             s[np.ix_(i[:, k_] == j_, i[:, k_] == j_)] += 1 / tau[k_]
 
-    post_var = (n @ s @ n) / np.sum(n) ** 2
-    post_mean = np.sum(y1) / np.sum(n)
+    post_var = float((n @ s @ n) / np.sum(n)) ** 2
+    post_mean = float(np.sum(y1) / np.sum(n))
+
+    post_var = float(n @ s @ n) / sum(n) ** 2
+    post_mean = sum(y1) / sum(n)
     return post_mean, post_var
 
 

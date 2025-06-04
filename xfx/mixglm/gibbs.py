@@ -9,8 +9,8 @@ import xfx.generic.uv_conjugate
 from xfx.generic.mv_2o_met import LatentGaussSampler
 
 
-IntArr = npt.NDArray[np.int_]
-FloatArr = npt.NDArray[np.float64]
+IntArr = npt.NDArray[np.integer]
+FloatArr = npt.NDArray[np.floating]
 ParamSpace = tuple[list[FloatArr], FloatArr, FloatArr]
 DispParamSpace = tuple[list[FloatArr], FloatArr, FloatArr, float]
 
@@ -36,7 +36,7 @@ def sample_reglr_posterior(
 
     if init is None:
         alp0 = 0
-        alp = [np.zeros(j_) for j_ in j]
+        alp: list[FloatArr] = [np.zeros(j_) for j_ in j]
         bet = np.zeros(x.shape[1])
         tau = prior_est_tau
     else:
@@ -84,7 +84,7 @@ def sample_disp_posterior(
 
     if init is None:
         alp0 = 0
-        alp = [np.zeros(j_) for j_ in j]
+        alp: list[FloatArr] = [np.zeros(j_) for j_ in j]
         bet = np.zeros(x.shape[1])
         tau = prior_est_tau
         phi = 1
@@ -111,7 +111,7 @@ def update_coefs(
     x: FloatArr,
     alp0: float,
     bet: FloatArr,
-    eps: float,
+    eps: FloatArr,
     tau0: float,
     phi: float,
     eval_part: xfx.glm.generic.PartFunc,
@@ -121,7 +121,7 @@ def update_coefs(
 
     def eval_log_p(b: FloatArr) -> tuple[FloatArr, FloatArr, FloatArr]:
         log_p, dk_log_p, d2k_log_p = eval_kernel(y1, n, z, eps, b[0], eval_part)
-        return log_p[np.newaxis] / phi, dk_log_p[np.newaxis] / phi, d2k_log_p / phi
+        return np.array(log_p)[np.newaxis] / phi, dk_log_p[np.newaxis] / phi, d2k_log_p / phi
 
     gam = np.append(alp0, bet)
     prec = np.append(tau0, np.zeros_like(bet))
@@ -135,19 +135,19 @@ def eval_kernel(
     y1: FloatArr,
     n: FloatArr,
     x: FloatArr,
-    alp0: float,
+    eps: float | FloatArr,
     bet: FloatArr,
     eval_part: xfx.glm.generic.PartFunc,
 ) -> tuple[float, FloatArr, FloatArr]:
 
-    eta = eval_reg_pred(x, alp0, bet)
+    eta = eval_reg_pred(x, eps, bet)
     log_f, d_log_f, d2_log_f = xfx.glm.generic.eval_densities(y1, n, eta, eval_part)
-    log_p = np.sum(log_f)
+    log_p = sum(log_f)
     d_log_p = x.T @ d_log_f
     d2_log_p = np.einsum('ij,ik,i->jk', x, x, d2_log_f, optimize=True)
     return log_p, d_log_p, d2_log_p
 
 
-def eval_reg_pred(x: FloatArr, alp0: float, bet: FloatArr) -> FloatArr:
+def eval_reg_pred(x: FloatArr, eps: float | FloatArr, bet: FloatArr) -> FloatArr:
 
-    return alp0 + x @ bet
+    return eps + x @ bet
