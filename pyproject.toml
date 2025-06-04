@@ -14,3 +14,6 @@ dependencies = [
     "scipy>=1.15.2",
     "seaborn>=0.13.2",
 ]
+
+[tool.setuptools.packages.find]
+exclude = ["tests*", "docs*", "paper*", "demos*"]
