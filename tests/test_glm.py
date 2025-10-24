@@ -88,7 +88,7 @@ def test_poisson(j=np.array([2, 3]), n_inflator=int(1e3), n_samples=int(1e4), se
     eta, i = data
     n = np.repeat(n_inflator, len(eta))
     y1 = n * ome.poisson(np.exp(eta))
-    sampler = xfx.glm.binomial.sample_posterior(y1, n, j, i, ome=ome)
+    sampler = xfx.glm.poisson.sample_posterior(y1, n, j, i, ome=ome)
     samples = [x_ for _, x_ in zip(range(n_samples), sampler)]
 
 
